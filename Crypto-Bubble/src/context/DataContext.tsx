@@ -46,7 +46,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("http://3.75.231.25/dex_risks");
+        const response = await fetch("https://api.coinchart.fun/dex_risks");
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         
         const responseText = await response.text();
