@@ -61,9 +61,9 @@ export const Chart = ({ onClose, tokenAddress = '0x2260fac5e5542a773aa44fbcfedf7
   }, [tokenAddress, chainId]);
 
   return (
-    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
+    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999999999]'>
       <div 
-        className='relative bg-gray-900 rounded-xl w-4/5 h-4/5 flex flex-col items-center justify-center'
+        className='relative bg-gray-900 rounded-xl w-4/5 h-4/5 flex flex-col items-center justify-center z-[99999999999]'
       >
         {/* Close Button */}
         <button 
