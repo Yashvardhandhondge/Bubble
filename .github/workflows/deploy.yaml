@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: eu-west-1  # Change to your AWS region
-  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}  # S3 bucket name from GitHub Secrets
+  S3_BUCKET: ${{ secrets.S3_BUCKET }}  # S3 bucket name from GitHub Secrets
   CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  # Optional for CloudFront cache invalidation
 
 jobs:
