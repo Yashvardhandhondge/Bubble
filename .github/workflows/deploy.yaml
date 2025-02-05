@@ -1,0 +1,47 @@
+name: Deploy React to S3
+
+on:
+  push:
+    branches:
+      - main  # Runs only when pushing to main branch
+  workflow_dispatch:  # Allows manual trigger
+
+env:
+  AWS_REGION: eu-west-1  # Change to your AWS region
+  S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}  # S3 bucket name from GitHub Secrets
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}  # Optional for CloudFront cache invalidation
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: 🏗️ Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'  # Use Node.js 18 (adjust if needed)
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🔨 Build React App
+        run: npm run build
+
+      - name: 🚀 Deploy to S3
+        run: |
+          aws s3 sync build/ s3://$S3_BUCKET --delete
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: 🧹 Invalidate CloudFront Cache (Optional)
+        if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
+        run: |
+          aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
