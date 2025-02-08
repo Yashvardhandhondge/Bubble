@@ -42,7 +42,7 @@ const ResizableLayout = ({ children, rightPanel }:any) => {
 
   return (
     <div 
-      className="flex h-screen overflow-hidden"
+      className="flex h-screen overflow-hidden "
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
@@ -67,7 +67,7 @@ const ResizableLayout = ({ children, rightPanel }:any) => {
           >
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`absolute ${!isCollapsed ? "-left-5":"-left-8"} top-24 -translate-y-1/2 z-50  p-2 hover:bg-gray-700 text-[#A7A7A7] rounded-l-md`}
+              className={`absolute ${!isCollapsed ? "-left-5":"-left-8"} top-24 -translate-y-1/2 -z-[0] p-2 hover:bg-gray-700 text-[#A7A7A7] rounded-l-md`}
             >
               <PanelToggleIcon className="w-6 h-6" isCollapsed={isCollapsed} />
             </button>

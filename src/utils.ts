@@ -14,3 +14,13 @@ export const formatPrice = (price: number): string => {
 export const formatPercentage = (percent: number): string => {
   return `${percent >= 0 ? '+' : ''}${percent.toFixed(2)}%`;
 };
+
+export const extractPrice = (description: string): string => {
+  const priceMatch = description.match(/\$(\d+(?:\.\d+)?)/);
+  return priceMatch ? priceMatch[1] : '0';
+};
+
+export const extractPercentages = (description: string): string[] => {
+  const percentages = description.match(/-?\d+\.\d+%/g);
+  return percentages || [];
+};

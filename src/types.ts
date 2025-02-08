@@ -41,6 +41,9 @@ export interface UserProfile {
 }
 
 export interface SubscriptionStatus {
+  status: 'Free' | 'Premium';
+  cancelAtPeriodEnd: boolean;
+  expiryDate?: string | null;
   isActive: boolean;
   plan?: string;
   startDate?: Date;
@@ -77,4 +80,11 @@ export interface Strategy {
   type: 'short' | 'long' | 'rsi';
   isActive: boolean;
   settings?: Record<string, any>;
+}
+
+export interface SignalData {
+  description: string;
+  risks: string[];
+  symbol: string;
+  timestamp?: number;
 }

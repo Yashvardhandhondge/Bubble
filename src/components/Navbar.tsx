@@ -122,8 +122,8 @@ export const Navbar = ({
 
   return (
     <div className="flex flex-col w-full bg-gray-900">
-      {/* Main Navbar */}
-      <div className="flex flex-col lg:flex-row items-center justify-between p-4 bg-gray-800/50">
+
+      <div className="flex flex-col lg:flex-row items-center justify-between p-4 bg-gray-800/50"> {/* Changed p-4 to p-5 to match BuySignalsPanel */}
         <div className="flex items-center gap-2 mb-4 lg:mb-0">
           <img
             src="https://i.ibb.co/znbC3SV/Group.jpg"
@@ -134,7 +134,6 @@ export const Navbar = ({
         </div>
 
         <div className="flex flex-col lg:flex-row items-center gap-4 w-full lg:w-auto">
-          {/* Search Bar */}
           <div className="relative w-full lg:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input

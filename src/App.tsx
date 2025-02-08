@@ -11,71 +11,17 @@ import { Wget } from './components/Chart';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 import { CryptoData } from './types';
-import PaymentModal from './components/PaymentModal';
+// import PaymentModal from './components/PaymentModal';
 import '@rainbow-me/rainbowkit/styles.css';
 import { DataProvider } from './context/DataContext';
 
 
 
-// Create a wrapper component for PaymentModal to handle navigation
-const PaymentModalWrapper = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const planType = queryParams.get('plan') as 'premium' | 'test' || 'premium';
-  const amount = planType === 'premium' ? 49 : 1;
-  const description = planType === 'premium' 
-    ? 'Access to Buy Signals & two Premium TradingView scripts'
-    : 'Testing CoinChart subscription';
-  
-  return (
-    <PaymentModal 
-      isOpen={true}
-      onClose={() => navigate('/')}
-      planType={planType}
-      amount={amount}
-      description={description}
-    />
-  );
-};
 
-// Success Page Component
-const PaymentSuccessPage = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="h-screen w-screen flex items-center justify-center bg-black">
-      <div className="text-white text-center">
-        <h1 className="text-2xl mb-4">Payment Successful!</h1>
-        <p className="mb-4">Your premium subscription is now active</p>
-        <button 
-          onClick={() => navigate('/')}
-          className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
-        >
-          Return to Dashboard
-        </button>
-      </div>
-    </div>
-  );
-};
 
-// Cancel Page Component
-const PaymentCancelPage = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="h-screen w-screen flex items-center justify-center bg-black">
-      <div className="text-white text-center">
-        <h1 className="text-2xl mb-4">Payment Cancelled</h1>
-        <p className="mb-4">Your payment was not completed</p>
-        <button 
-          onClick={() => navigate('/')}
-          className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
-        >
-          Return to Dashboard
-        </button>
-      </div>
-    </div>
-  );
-};
+
+
+
 
 // Main App Component
 function App() {
@@ -114,9 +60,7 @@ function App() {
                   </div>
                 </ResizableLayout>
               } />
-              <Route path="/payment" element={<PaymentModalWrapper />} />
-              <Route path="/payment/success" element={<PaymentSuccessPage />} />
-              <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+              
             </Routes>
           </Router>
         </DataProvider>
