@@ -5,8 +5,7 @@ import {
   Plus, 
   SlidersHorizontal, 
   X,
-  Menu,
-  Filter 
+  Menu 
 } from 'lucide-react';
 import { FaTelegram } from "react-icons/fa";
 import { useData } from '../context/DataContext';
@@ -155,7 +154,7 @@ export const Navbar = ({
   return (
     <div className="flex flex-col w-full bg-gray-900">
 
-      <div className="flex flex-col lg:flex-row items-center justify-between p-4 bg-gray-800/50"> {/* Changed p-4 to p-5 to match BuySignalsPanel */}
+      <div className="flex flex-col h-16 lg:flex-row items-center justify-between p-4 bg-gray-800/50"> {/* Changed p-4 to p-5 to match BuySignalsPanel */}
         <div className="flex items-center gap-2 mb-4 lg:mb-0">
           <img
             src="https://i.ibb.co/znbC3SV/Group.jpg"

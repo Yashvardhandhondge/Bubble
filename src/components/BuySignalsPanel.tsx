@@ -1,27 +1,25 @@
 import React, { useEffect, useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { Crown, User } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa';
-import { SignalData, SubscriptionStatus } from '../types';
+import { SignalData } from '../types';
 import { FreeSignalCard } from './FreeSignalCard';
 import { PremiumSignalCard } from './PremiumSignalCard';
+import { useSubscriptionCheck } from '../hooks/useSubscriptionCheck';
+import Buttons from './Buttons';
 
 export const BuySignalsPanel: React.FC = () => {
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
-    status: 'Free',
-    cancelAtPeriodEnd: false,
-    expiryDate: null,
-    isActive: false
-  });
-
+  
   const { address } = useAccount();
   const { openConnectModal } = useConnectModal();
-  const isPremiumActive =
-    subscriptionStatus.status === 'Premium' && !subscriptionStatus.cancelAtPeriodEnd;
+  const subscriptionStatus = useSubscriptionCheck(address);
+  
+  const isPremiumActive = 
+    subscriptionStatus.status === 'Premium' && 
+    !subscriptionStatus.cancelAtPeriodEnd;
 
   useEffect(() => {
     const fetchSignals = async () => {
@@ -53,8 +51,10 @@ export const BuySignalsPanel: React.FC = () => {
   };
 
   return (
-    <div className="h-full bg-black border-l border-gray-800/80 flex flex-col">
-      <div className="flex items-center justify-between p-5 "> 
+    <div className="h-full bg-black flex flex-col">
+      {/* Header with reduced padding */}
+      <div className="flex flex-col lg:flex-row items-center justify-between p-4 h-16 "> 
+  
         <div className="flex items-center gap-2">
           {isPremiumActive ? (
             <>
@@ -77,15 +77,19 @@ export const BuySignalsPanel: React.FC = () => {
             </span>
           </button>
         ) : (
-          <button onClick={openConnectModal} className="text-sm text-white">
+          <button onClick={openConnectModal} className="text-sm text-white bg-[#1B61B3] px-4 py-1 rounded-full"> 
             Connect Wallet
           </button>
         )}
       </div>
+      
+      {/* Logo SVG */}
+      <div className="px-4 py-2">
+ <h1 className='text-2xl p-7 text-white font-semibold '>Latest Buy Signals </h1>
+      </div>
 
-      <h2 className="text-2xl font-bold text-white p-4">Latest Buy Signals</h2>
-
-      <div className="flex-1 overflow-y-auto px-4">
+      {/* Content with smaller padding */}
+      <div className="flex-1 overflow-y-auto px-2">
         {loading ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
         ) : signals.length > 0 ? (
@@ -103,14 +107,14 @@ export const BuySignalsPanel: React.FC = () => {
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-800/50">
+      <div className="p-2 border-t border-gray-800/50">
         {!isPremiumActive ? (
           <button
             onClick={handleUpgradeToPremium}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
+            className="w-full h-full p-4"
           >
-            <span>Upgrade to Premium</span>
-            <Crown className="w-4 h-4" />
+
+<Buttons/>
           </button>
         ) : (
           <button
@@ -125,3 +129,5 @@ export const BuySignalsPanel: React.FC = () => {
     </div>
   );
 };
+
+export default BuySignalsPanel;

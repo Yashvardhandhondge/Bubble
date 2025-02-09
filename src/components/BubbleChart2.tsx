@@ -220,7 +220,7 @@ export default function BitcoinRiskChart({
         const offset = (index / initializedData.length - 0.5) * spread;
         return containerWidth / 2 + offset;
       }).strength(0.08))
-      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50)).strength(0.5)) 
+      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50) + 10).strength(0.5)) 
       .force("collide", d3.forceCollide<DataItem>()
         .radius(d => d.radius + 3).strength(0.8)) 
       .force("charge", d3.forceManyBody<DataItem>()

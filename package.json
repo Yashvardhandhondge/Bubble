@@ -15,7 +15,7 @@
     "@solana/wallet-adapter-react": "^0.15.35",
     "@tanstack/react-query": "^5.66.0",
     "@types/d3": "^7.4.3",
-    "@wagmi/core": "^2.16.3",
+    "@wagmi/core": "^2.16.4",
     "@walletconnect/core": "^2.18.0",
     "@walletconnect/utils": "^2.18.0",
     "axios": "^1.7.9",

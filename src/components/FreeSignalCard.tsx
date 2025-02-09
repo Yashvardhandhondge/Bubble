@@ -3,6 +3,7 @@ import React from 'react';
 import { Lock } from 'lucide-react';
 import { SignalData } from '../types';
 import { extractPrice } from '../utils';
+import Locksvg from './Locksvg';
 
 interface FreeSignalCardProps {
   signal: SignalData;
@@ -12,9 +13,8 @@ interface FreeSignalCardProps {
 export const FreeSignalCard: React.FC<FreeSignalCardProps> = ({ signal }) => {
   return (
     <div className="relative p-4 rounded-xl bg-gray-800/50 border border-gray-700">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-xl flex items-center justify-center">
-        <Lock className="w-12 h-12 text-white opacity-70" />
-        <span className="ml-4 text-white">Upgrade to view</span>
+      <div className="absolute inset-0 bg-green-700/40 backdrop-blur-sm rounded-xl flex items-center justify-center">
+        <Locksvg/>
       </div>
 
       <div className="flex justify-between mb-2">
