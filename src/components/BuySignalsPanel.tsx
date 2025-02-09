@@ -54,7 +54,7 @@ export const BuySignalsPanel: React.FC = () => {
 
   return (
     <div className="h-full bg-black border-l border-gray-800/80 flex flex-col">
-      <div className="flex items-center justify-between p-5 bg-[#19202F]"> 
+      <div className="flex items-center justify-between p-5 "> 
         <div className="flex items-center gap-2">
           {isPremiumActive ? (
             <>

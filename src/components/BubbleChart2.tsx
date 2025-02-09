@@ -11,6 +11,8 @@ const CONTAINER_WIDTH = 1100;
 const BUBBLE_PADDING = 5;
 const MIN_BUBBLE_SIZE = 25;
 const MAX_BUBBLE_SIZE = 40;
+const BASE_BUBBLE_RATIO = 0.04; // Base bubble size as percentage of container width
+const MIN_SEPARATION_RATIO = 1.2; // Minimum space between bubbles
 
 interface DataItem extends d3.SimulationNodeDatum {
   risk?: number;
@@ -40,7 +42,7 @@ export default function BitcoinRiskChart({
   selectedRange,
   isCollapsed
 }: BitcoinRiskChartProps) {
-  const { filteredData, loading, error } = useData();
+  const { filteredData, loading, error, filters } = useData();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const simulationRef = useRef<d3.Simulation<DataItem, undefined> | null>(null);
   const [containerWidth, setContainerWidth] = useState(CONTAINER_WIDTH);
@@ -72,35 +74,39 @@ export default function BitcoinRiskChart({
     return filteredData.slice(start - 1, end)
       .sort((a, b) => (b.volume || 0) - (a.volume || 0))
       .map(item => ({ ...item } as DataItem));
-  }, [filteredData, selectedRange]);
+  }, [filteredData, selectedRange, filters]);
 
   // Calculate bubble colors based on risk level
   const calculateBubbleColor = (risk: number) => {
     if (risk > 50) {
-      // Red theme for overvalued
+      // Red theme for overvalued with intensity based on risk level
+      const intensity = (risk - 50) / 50; // 0 to 1 scale for risks 50-100
       return {
-        border: 'rgba(255, 0, 0, 0.8)',
-        background: 'rgba(255, 0, 0, 0.2)',
-        gradient: 'rgba(255, 0, 0, 0.3)'
+        border: `rgba(255, ${Math.round(100 - intensity * 100)}, ${Math.round(100 - intensity * 100)}, 0.8)`,
+        background: `rgba(255, ${Math.round(100 - intensity * 100)}, ${Math.round(100 - intensity * 100)}, 0.2)`,
+        gradient: `rgba(255, ${Math.round(100 - intensity * 100)}, ${Math.round(100 - intensity * 100)}, 0.3)`
       };
     } else {
-      // Green theme for undervalued
+      // Green theme for undervalued with intensity based on risk level
+      const intensity = (50 - risk) / 50; // 0 to 1 scale for risks 0-50
       return {
-        border: 'rgba(0, 255, 0, 0.8)',
-        background: 'rgba(0, 255, 0, 0.2)',
-        gradient: 'rgba(0, 255, 0, 0.3)'
+        border: `rgba(${Math.round(100 - intensity * 100)}, 255, ${Math.round(100 - intensity * 100)}, 0.8)`,
+        background: `rgba(${Math.round(100 - intensity * 100)}, 255, ${Math.round(100 - intensity * 100)}, 0.2)`,
+        gradient: `rgba(${Math.round(100 - intensity * 100)}, 255, ${Math.round(100 - intensity * 100)}, 0.3)`
       };
     }
   };
 
-  // Calculate vertical position based on risk level
-  const getRiskBand = (risk:any) => {
-    const padding = CONTAINER_HEIGHT * 0.05;
-    const normalizedRisk = Math.max(0, Math.min(100, risk));
-    return CONTAINER_HEIGHT * (1 - normalizedRisk / 100) * 0.8 + padding;
+  // Update the getRiskBand function to be more precise
+  const getRiskBand = (risk: number) => {
+    const bandPadding = CONTAINER_HEIGHT * 0.05; // 5% padding
+    if (risk >= 80) return CONTAINER_HEIGHT * 0.1 + bandPadding;
+    if (risk >= 60) return CONTAINER_HEIGHT * 0.3 + bandPadding;
+    if (risk >= 40) return CONTAINER_HEIGHT * 0.5 + bandPadding;
+    if (risk >= 20) return CONTAINER_HEIGHT * 0.7 + bandPadding;
+    return CONTAINER_HEIGHT * 0.9 - bandPadding;
   };
 
-  // Create bubble HTML with dynamic sizing
   const createBubbleHTML = (d: DataItem) => {
     const colors = calculateBubbleColor(d.risk || 0);
     const iconSize = `${d.radius * 0.6}px`;
@@ -156,6 +162,30 @@ export default function BitcoinRiskChart({
     setShowModal(false);
   };
 
+  // Helper function to calculate optimal bubble size
+  const calculateOptimalBubbleSize = (
+    containerWidth: number, 
+    containerHeight: number, 
+    itemCount: number
+  ): { minSize: number; maxSize: number } => {
+    // Calculate available area and target bubble area
+    const availableArea = containerWidth * containerHeight * 0.7; // Use 70% of space
+    const targetBubbleArea = availableArea / (itemCount * 2); // Divide by 2 for spacing
+    const baseBubbleSize = Math.sqrt(targetBubbleArea / Math.PI);
+    
+    // Scale based on container dimensions
+    const widthBasedSize = containerWidth * BASE_BUBBLE_RATIO;
+    const heightBasedSize = containerHeight * BASE_BUBBLE_RATIO;
+    
+    // Use the smaller of the calculated sizes
+    const optimalSize = Math.min(baseBubbleSize, widthBasedSize, heightBasedSize);
+    
+    return {
+      minSize: Math.max(15, optimalSize * 0.8), // Never smaller than 15px
+      maxSize: Math.min(40, optimalSize * 1.2) // Never larger than 40px
+    };
+  };
+
   // Initialize and update simulation
   useEffect(() => {
     if (!containerRef.current || !rangeFilteredData.length || !containerWidth) {
@@ -176,23 +206,27 @@ export default function BitcoinRiskChart({
 
     const initializedData = rangeFilteredData.map((d) => ({
       ...d,
-      x: containerWidth / 2 + (Math.random() - 0.5) * containerWidth * 0.5,
+      x: containerWidth / 2 + (Math.random() - 0.5) * containerWidth * 0.6, // Reduced spread
       y: getRiskBand(d.risk ?? 50),
-      radius: Math.max(MIN_BUBBLE_SIZE, 
-        Math.min(MAX_BUBBLE_SIZE, (d.bubbleSize ?? 1) * 30))
+      radius: Math.max(20, Math.min(30, d.bubbleSize ? d.bubbleSize * 25 : 30)) // Adjusted sizes
     }));
 
     const simulation = d3.forceSimulation<DataItem>(initializedData)
       .force("x", d3.forceX<DataItem>((d) => {
         const index = initializedData.indexOf(d);
-        const spread = containerWidth * 0.35;
-        return containerWidth / 2 + (index / initializedData.length - 0.5) * spread;
-      }).strength(0.1))
-      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50)).strength(0.6))
-      .force("collide", d3.forceCollide<DataItem>().radius(d => d.radius + BUBBLE_PADDING).strength(0.85))
-      .force("charge", d3.forceManyBody<DataItem>().strength(-35))
-      .alphaDecay(0.018)
-      .velocityDecay(0.35);
+        // Adjust spread only when sidebar is collapsed (full width)
+        const spreadMultiplier = isCollapsed ? 0.6 : 0.4; // Increased spread when collapsed
+        const spread = containerWidth * spreadMultiplier;
+        const offset = (index / initializedData.length - 0.5) * spread;
+        return containerWidth / 2 + offset;
+      }).strength(0.08))
+      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50)).strength(0.5)) 
+      .force("collide", d3.forceCollide<DataItem>()
+        .radius(d => d.radius + 3).strength(0.8)) 
+      .force("charge", d3.forceManyBody<DataItem>()
+        .strength(-40)) 
+      .alphaDecay(0.02) 
+      .velocityDecay(0.3);
     simulationRef.current = simulation;
 
     const bubbles = bubbleContainer.selectAll<HTMLDivElement, DataItem>(".bubble-container")
@@ -204,7 +238,6 @@ export default function BitcoinRiskChart({
       .html(createBubbleHTML)
       .on("click", handleBubbleClick);
 
-    // Fade in animation only for initial render
     if (isInitialRender) {
       bubbles.transition()
         .duration(600)
@@ -212,8 +245,6 @@ export default function BitcoinRiskChart({
       
       setIsInitialRender(false);
     }
-
-    // Update positions on simulation tick
     simulation.on("tick", () => {
       bubbles
         .style("left", d => `${Math.max(d.radius, Math.min(containerWidth - d.radius, d.x))}px`)
@@ -242,7 +273,7 @@ export default function BitcoinRiskChart({
     );
   }
 
-  // Conditionally render the Wget component or the chart
+  
   if (showWidget) {
     return <Wget />;
   }
@@ -251,7 +282,7 @@ export default function BitcoinRiskChart({
     <>
       <div className="relative w-full h-full">
         <div className="relative bg-black" style={{ height: CONTAINER_HEIGHT }}>
-          {/* Risk level labels */}
+         
           <div className="absolute left-0 top-0 flex flex-col text-sm text-white"
               style={{ width: '30px', height: `${CONTAINER_HEIGHT-50}px` }}>
             {[100, 80, 60, 40, 20, 0].map(level => (
@@ -287,7 +318,7 @@ export default function BitcoinRiskChart({
             style={{ 
               position: 'relative',
               height: `${CONTAINER_HEIGHT}px`,
-              padding: '40px 0 20px 0' // Added top padding of 40px
+              padding: '40px 0 20px 0' 
             }}
           />
         </div>

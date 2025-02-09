@@ -8,22 +8,10 @@ import ResizableLayout from './components/Resizablecomponent';
 import BitcoinRiskChart from './components/BubbleChart2';
 import { BuySignalsPanel } from './components/BuySignalsPanel';
 import { Wget } from './components/Chart';
-import { useNavigate, useLocation } from 'react-router-dom';
-
 import { CryptoData } from './types';
-// import PaymentModal from './components/PaymentModal';
 import '@rainbow-me/rainbowkit/styles.css';
 import { DataProvider } from './context/DataContext';
 
-
-
-
-
-
-
-
-
-// Main App Component
 function App() {
   const [selectedRange, setSelectedRange] = useState("Top 100");
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData | null>(null);

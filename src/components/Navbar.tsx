@@ -11,6 +11,12 @@ import {
 import { FaTelegram } from "react-icons/fa";
 import { useData } from '../context/DataContext';
 
+interface Filters {
+  skipTraps: boolean;
+  avoidHype: boolean;
+  minMarketCap: boolean;
+}
+
 interface Strategy {
   id: string;
   name: string;
@@ -49,6 +55,7 @@ export const Navbar = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [activeStrategyId, setActiveStrategyId] = useState('1');
   const [selectedTokenType, setSelectedTokenType] = useState<'binance' | 'bybit' | 'ai'>('binance');
+  const [activeFilterStrategyId, setActiveFilterStrategyId] = useState<string | null>(null);
 
   const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
     { id: '1', name: 'Short-Term', type: 'short' },
@@ -76,17 +83,26 @@ export const Navbar = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
+      
+      if (target.closest('.filters-dropdown') || 
+          (target.closest('.filters-button') && !showFilters)) {
+        return;
+      }
+
       if (!target.closest('.dropdown-container')) {
         setShowRankDropdown(false);
         setShowStrategySelector(false);
         setShowTokenSelector(false);
-        setShowFilters(false);
+        if (!target.closest('.filters-button')) {
+          setShowFilters(false);
+          setActiveFilterStrategyId(null);
+        }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [showFilters]);
 
   const handleRangeChange = (range: string) => {
     setSelectedRange(range);
@@ -118,6 +134,22 @@ export const Navbar = ({
       setSelectedTokens(updatedTokens);
       onTokenSourceChange?.(token.type);
     }
+  };
+
+  const handleFilterClick = (strategyId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (activeFilterStrategyId === strategyId) {
+      setShowFilters(false);
+      setActiveFilterStrategyId(null);
+    } else {
+      setShowFilters(true);
+      setActiveFilterStrategyId(strategyId);
+    }
+  };
+
+  const handleFilterOptionClick = (filterKey: keyof Filters, value: boolean, event: React.ChangeEvent<HTMLInputElement>) => {
+    event.stopPropagation();
+    updateFilters({ [filterKey]: value });
   };
 
   return (
@@ -181,7 +213,7 @@ export const Navbar = ({
             )}
           </div>
 
-          {/* API Access Link */}
+         
           <a 
             href="https://t.me/coinchart_api" 
             target="_blank" 
@@ -193,7 +225,7 @@ export const Navbar = ({
           </a>
         </div>
 
-        {/* Mobile Menu Button */}
+        
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="lg:hidden p-2 text-gray-400 hover:text-white"
@@ -202,9 +234,9 @@ export const Navbar = ({
         </button>
       </div>
 
-      {/* Strategy & Token Selection Bar */}
-      <div className={`flex flex-col lg:flex-row items-start lg:items-center justify-start p-4 bg-black space-y-4 lg:space-y-0 ${showMobileMenu ? '' : 'hidden lg:flex'}`}>
-        {/* Strategy Selection */}
+   
+      <div className={`flex flex-col lg:flex-row items-start lg:items-center justify-start p-3 bg-black space-y-4 lg:space-y-0 ${showMobileMenu ? '' : 'hidden lg:flex'}`}>
+     
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto">
           <span className="text-white whitespace-nowrap">Strategies:</span>
           <div className="flex flex-wrap gap-2">
@@ -223,31 +255,39 @@ export const Navbar = ({
                   {strategy.name}
                   {strategy.type === 'short' && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowFilters(!showFilters);
-                      }}
+                      className="filters-button ml-1"
+                      onClick={(e) => handleFilterClick(strategy.id, e)}
                     >
                       <SlidersHorizontal size={18} />
                     </button>
                   )}
                 </button>
 
-                {/* Strategy Filters Dropdown */}
-                {strategy.type === 'short' && showFilters && (
-                  <div className="absolute left-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg z-50">
+                {strategy.type === 'short' && 
+                 showFilters && 
+                 activeFilterStrategyId === strategy.id && (
+                  <div 
+                    className="filters-dropdown absolute left-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg z-[100]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="p-4 space-y-3">
                       <h3 className="text-white font-semibold mb-2">Filters</h3>
                       <div className="space-y-2">
                         {Object.entries(filters).map(([key, value]) => (
-                          <label key={key} className="flex items-center gap-2 text-white">
+                          <label 
+                            key={key} 
+                            className="flex items-center gap-2 text-white cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <input
                               type="checkbox"
                               checked={value}
-                              onChange={(e) => updateFilters({ [key]: e.target.checked })}
-                              className="rounded bg-gray-700 border-gray-600"
+                              onChange={(e) => handleFilterOptionClick(key as keyof Filters, e.target.checked, e)}
+                              className="rounded bg-gray-700 border-gray-600 cursor-pointer"
                             />
-                            <span className="text-sm">{key.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
+                            <span className="text-sm select-none">
+                              {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -256,8 +296,7 @@ export const Navbar = ({
                 )}
               </div>
             ))}
-            
-            {/* Add Strategy Button */}
+
             <button
               onClick={() => setShowStrategySelector(!showStrategySelector)}
               className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
@@ -267,7 +306,7 @@ export const Navbar = ({
           </div>
         </div>
 
-        {/* Token Selection */}
+      
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0 lg:ml-8">
           <span className="text-white whitespace-nowrap">Token:</span>
           <div className="flex flex-wrap gap-2">
@@ -287,7 +326,7 @@ export const Navbar = ({
               </button>
             ))}
             
-            {/* Add Token Button */}
+         
             <button
               onClick={() => setShowTokenSelector(!showTokenSelector)}
               className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
@@ -297,7 +336,7 @@ export const Navbar = ({
           </div>
         </div>
 
-        {/* Strategy Selector Dropdown */}
+    
         {showStrategySelector && (
           <div className="absolute left-72 top-36 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
             <div className="p-2">
@@ -318,7 +357,6 @@ export const Navbar = ({
           </div>
         )}
 
-        {/* Token Selector Dropdown */}
         {showTokenSelector && (
           <div className="absolute right-72 top-36 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
             <div className="p-2">
