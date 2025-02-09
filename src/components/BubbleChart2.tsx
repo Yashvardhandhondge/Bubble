@@ -112,7 +112,7 @@ export default function BitcoinRiskChart({
     const iconSize = `${d.radius * 0.6}px`;
     const symbolFontSize = `${d.radius * 0.3}px`;
     const percentFontSize = `${d.radius * 0.25}px`;
-
+  
     return `
       <div class="bubble">
         <div class="relative rounded-full transition-transform hover:scale-105 "
@@ -136,14 +136,25 @@ export default function BitcoinRiskChart({
               />
             ` : ''}
             <span 
-              class="text-white font-bold" 
-              style="font-size: ${symbolFontSize};"
+              class="font-bold tracking-wider"
+              style="
+                font-size: ${symbolFontSize}; 
+                color: rgba(255, 255, 255, 0.95);
+                text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 
+                           0 0 2px rgba(0, 0, 0, 0.9);
+                letter-spacing: 0.05em;
+              "
             >
               ${d.symbol}
             </span>
             <span 
-              class="text-white font-semibold" 
-              style="font-size: ${percentFontSize};"
+              class="font-semibold"
+              style="
+                font-size: ${percentFontSize}; 
+                color: rgba(255, 255, 255, 0.95);
+                text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 
+                           0 0 2px rgba(0, 0, 0, 0.9);
+              "
             >
               ${d.risk?.toFixed(1)}%
             </span>

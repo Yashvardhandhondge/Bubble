@@ -9,6 +9,15 @@ export interface CryptoData {
   rank: number;
   launchDate?: string;
   riskLevel: number; // 0-100
+  risk: number; // new property
+  icon?: string; // new optional property
+  volume?: number;
+  moralisLink?: string;
+  warnings?: string[];
+  '1mChange'?: number;
+  '2wChange'?: number;
+  '3mChange'?: number;
+  bubbleSize?: number;
 }
 
 export interface TimeframeData {

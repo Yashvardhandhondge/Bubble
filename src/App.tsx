@@ -4,7 +4,7 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { wagmiConfig, chains } from './config/payment';
 import { Navbar } from './components/Navbar';
-import BitcoinRiskChart from './components/BubbleChart2';
+import ChartAdapter from './components/ChartAdapter';
 import { BuySignalsPanel } from './components/BuySignalsPanel';
 import { Wget } from './components/Chart';
 import { CryptoData } from './types';
@@ -22,7 +22,7 @@ function App() {
 
   return (
     <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains}>
+      <RainbowKitProvider modalSize="compact">
         <DataProvider>
           <Router>
             <Routes>
@@ -32,7 +32,7 @@ function App() {
                     <Navbar onRangeChange={setSelectedRange} />
                     <div className="flex-1 p-6">
                       <div className="w-full h-full">
-                        <BitcoinRiskChart 
+                        <ChartAdapter 
                           selectedRange={selectedRange}
                           onBubbleClick={handleBubbleClick}
                         />

@@ -8,18 +8,19 @@ import { FreeSignalCard } from './FreeSignalCard';
 import { PremiumSignalCard } from './PremiumSignalCard';
 import { useSubscriptionCheck } from '../hooks/useSubscriptionCheck';
 import Buttons from './Buttons';
+import { AuthService } from '../services/api';
 
 export const BuySignalsPanel: React.FC = () => {
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   
   const { address } = useAccount();
   const { openConnectModal } = useConnectModal();
   const subscriptionStatus = useSubscriptionCheck(address);
   
-  const isPremiumActive = 
-    subscriptionStatus.status === 'Premium' && 
-    !subscriptionStatus.cancelAtPeriodEnd;
+  const isPremiumActive = !subscriptionStatus.cancelAtPeriodEnd;
+
 
   useEffect(() => {
     const fetchSignals = async () => {
@@ -42,17 +43,39 @@ export const BuySignalsPanel: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (address) {
+      handleWalletConnect(address);
+    }
+  }, [address]);
+
   const handleUpgradeToPremium = () => {
     window.open('https://pay.boomfi.xyz/2rwqC9PH4zXMNqTupAXjsNyNJ3v', '_blank');
   };
 
   const handleTelegramSupport = () => {
-    window.open('https://t.me/yourtelegramchannel', '_blank');
+    window.open('https://t.me/+1oKOrFd0G2RjYjVk', '_blank');
+  };
+
+  const handleWalletConnect = async (walletAddr: string) => {
+    try {
+      setConnectionError(null);
+      const result = await AuthService.register(walletAddr);
+      if (result.success) {
+        console.log('Wallet connected:', result.data.user);
+      } else {
+        setConnectionError(result.error);
+        console.error('Connection failed:', result.error);
+      }
+    } catch (error) {
+      setConnectionError('Failed to connect wallet');
+      console.error('Error connecting wallet:', error);
+    }
   };
 
   return (
     <div className="h-full bg-black flex flex-col">
-      {/* Header with reduced padding */}
+   
       <div className="flex flex-col lg:flex-row items-center justify-between p-4 h-16 "> 
   
         <div className="flex items-center gap-2">
@@ -83,12 +106,11 @@ export const BuySignalsPanel: React.FC = () => {
         )}
       </div>
       
-      {/* Logo SVG */}
+  
       <div className="px-4 py-2">
  <h1 className='text-2xl p-7 text-white font-semibold '>Latest Buy Signals </h1>
       </div>
 
-      {/* Content with smaller padding */}
       <div className="flex-1 overflow-y-auto px-2">
         {loading ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
@@ -106,6 +128,12 @@ export const BuySignalsPanel: React.FC = () => {
           <div className="text-white text-center mt-8">No signals available</div>
         )}
       </div>
+
+      {connectionError && (
+        <div className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          {connectionError}
+        </div>
+      )}
 
       <div className="p-2 border-t border-gray-800/50">
         {!isPremiumActive ? (

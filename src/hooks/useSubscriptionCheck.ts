@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { SubscriptionStatus } from '../types';
+import { SubscriptionStatus} from '../types';
+import { SubscriptionResponse } from '../store/BackendType';
 
 const STORAGE_KEYS = {
   TOKEN: 'auth_token',
@@ -31,14 +32,14 @@ export const useSubscriptionCheck = (walletAddress: string | undefined) => {
         body: JSON.stringify({ walletAddress })
       });
 
-      const data = await response.json();
+      const data: SubscriptionResponse = await response.json();
 
       if (data.success) {
         const newStatus: SubscriptionStatus = {
           status: data.user.subscription.status,
           cancelAtPeriodEnd: data.user.subscription.cancelAtPeriodEnd,
           expiryDate: data.user.subscription.expiryDate,
-          isActive: !data.user.subscription.cancelAtPeriodEnd
+          isActive: data.user.subscription.isActive
         };
 
         // Only update if status has changed
@@ -56,13 +57,10 @@ export const useSubscriptionCheck = (walletAddress: string | undefined) => {
 
   useEffect(() => {
     if (!walletAddress) return;
-
     
     checkSubscription();
-
     
     const interval = setInterval(checkSubscription, 5 * 60 * 1000);
-
     return () => clearInterval(interval);
   }, [walletAddress]);
 
