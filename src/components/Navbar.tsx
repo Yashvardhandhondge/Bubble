@@ -217,7 +217,7 @@ export const Navbar = ({
             href="https://t.me/coinchart_api" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-xs text-gray-300 hover:text-white whitespace-nowrap"
+            className="flex items-center gap-2 text-sm text-white hover:text-white whitespace-nowrap"
           >
             API Access
             <FaTelegram size={14} className="text-blue-400" />

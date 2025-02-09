@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { WagmiConfig } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { wagmiConfig, chains } from './config/payment';
+import { wagmiConfig } from './config/payment';
+
 import { Navbar } from './components/Navbar';
 import ChartAdapter from './components/ChartAdapter';
 import { BuySignalsPanel } from './components/BuySignalsPanel';

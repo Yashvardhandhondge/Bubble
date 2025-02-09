@@ -1,5 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// Add SignalData to the types
+interface SignalData {
+  symbol: string;
+  description: string;
+  timestamp?: number;
+  risks: string[];
+  // ... other signal properties
+}
+
 interface CryptoData {
   symbol: string;
   risk: number;
@@ -22,6 +31,7 @@ interface FilterSettings {
 
 interface DataContextType {
   data: CryptoData[];
+  signals: SignalData[];
   filteredData: CryptoData[];
   loading: boolean;
   error: string | null;
@@ -33,7 +43,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [data, setData] = useState<CryptoData[]>([]);
-  const [filteredData, setFilteredData] = useState<CryptoData[]>(data);
+  const [signals, setSignals] = useState<SignalData[]>([]);
+  const [filteredData, setFilteredData] = useState<CryptoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterSettings>({
@@ -42,45 +53,93 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     marketCapFilter: false,
   });
 
-  // Modify the fetch effect to initialize filteredData
-  useEffect(() => {
-    const fetchData = async () => {
+  // Add a retry mechanism
+  const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
+    for (let i = 0; i < retries; i++) {
       try {
-        const response = await fetch("https://api.coinchart.fun/dex_risks");
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response;
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+      }
+    }
+    throw new Error('Failed to fetch after all retries');
+  };
+
+  useEffect(() => {
+    let isSubscribed = true;
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const fetchAllData = async () => {
+      try {
+        // Fetch both endpoints with retry mechanism
+        const [risksResponse, signalsResponse] = await Promise.all([
+          fetchWithRetry("https://api.coinchart.fun/dex_risks"),
+          fetchWithRetry("https://api.coinchart.fun/dex_signals")
+        ]);
+
+        if (!isSubscribed) return;
+
+        // Process risks data
+        const risksText = await risksResponse.text();
+        const sanitizedRisksText = risksText.replace(/NaN/g, "null");
+        const risksResult = JSON.parse(sanitizedRisksText);
+
+        // Process signals data
+        const signalsData = await signalsResponse.json();
         
-        const responseText = await response.text();
-        const sanitizedResponseText = responseText.replace(/NaN/g, "null");
-        const result = JSON.parse(sanitizedResponseText);
+        if (!isSubscribed) return;
 
-        const transformedData = Object.entries(result).map(([key, value]: [string, any]) => ({
-          symbol: key,
-          risk: value.risk,
-          icon: value.icon,
-          price: value.price,
-          volume: value.volume || 0,
-          moralisLink: value.moralisLink,
-          warnings: value.warnings || [],
-          "1mChange": value["1mChange"],
-          "2wChange": value["2wChange"],
-          "3mChange": value["3mChange"],
-          bubbleSize: value.bubbleSize
-        })).sort((a, b) => (b.volume || 0) - (a.volume || 0));
+        // Transform and set data
+        const transformedRisksData = Object.entries(risksResult)
+          .map(([key, value]: [string, any]) => ({
+            symbol: key,
+            risk: value.risk,
+            icon: value.icon,
+            price: value.price,
+            volume: value.volume || 0,
+            moralisLink: value.moralisLink,
+            warnings: value.warnings || [],
+            "1mChange": value["1mChange"],
+            "2wChange": value["2wChange"],
+            "3mChange": value["3mChange"],
+            bubbleSize: value.bubbleSize
+          }))
+          .sort((a, b) => (b.volume || 0) - (a.volume || 0));
 
-        setData(transformedData);
-        // Initialize filteredData with the full dataset
-        setFilteredData(transformedData);
-        setLoading(false);
+        const sortedSignals = signalsData.sort(
+          (a: SignalData, b: SignalData) => (b.timestamp || 0) - (a.timestamp || 0)
+        );
+
+        setData(transformedRisksData);
+        setFilteredData(transformedRisksData);
+        setSignals(sortedSignals);
+        setError(null);
       } catch (err) {
+        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : "Failed to fetch data");
-        setLoading(false);
+      } finally {
+        if (isSubscribed) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchData();
+    // Initial fetch
+    fetchAllData();
     
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
+    // Set up interval for periodic updates
+    intervalId = setInterval(fetchAllData, 60000); // Every minute
+
+    // Cleanup function
+    return () => {
+      isSubscribed = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, []);
 
   // Separate effect for filtering
@@ -123,8 +182,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setFilteredData(filtered);
   }, [data, filters]);
 
-  // Remove the filterData useMemo as we're now using useEffect
-
   const updateFilters = (newFilters: Partial<FilterSettings>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
@@ -132,6 +189,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <DataContext.Provider value={{
       data,
+      signals,
       filteredData,
       loading,
       error,

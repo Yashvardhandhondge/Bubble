@@ -1,5 +1,6 @@
 .custom-div {
     width: 100%;
+    height: 100vh;
     margin-left: 0;
     padding: 1rem;
     background: linear-gradient(
@@ -25,6 +26,7 @@
 .bubbles-wrapper {
     position: absolute;
     inset: 0;
+    height: 100%;
     pointer-events: none;
     overflow: visible;
     z-index: 2;
@@ -41,11 +43,12 @@
 .bubble {
     position: relative;
     transform: translate(-50%, -50%);
-    transition: all 0.2s ease-in-out;
+    transition: all 0.3s ease-in-out;
 }
 
 .bubble:hover {
-    transform: translate(-50%, -50%) scale(1.05);
+    transform: translate(-50%, -50%) scale(1.15);
+    z-index: 100;
 }
 
 .bubble > div:first-child {
@@ -53,6 +56,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     background: rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease-in-out;
 }
 
 .risk-label {
@@ -90,6 +94,7 @@
     text-align: center;
     cursor: pointer;
     padding: 0.5rem;
+    transition: opacity 0.3s ease-in-out;
 }
 
 .bubble-content img {
@@ -105,6 +110,7 @@
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: none; /* Prevent symbol name from transitioning */
 }
 
 @media (min-width: 640px) {
@@ -128,7 +134,7 @@
 
 /* Enhanced hover effects */
 .bubble:hover > div:first-child {
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* Loading state styles */
@@ -162,4 +168,19 @@
     .bubble:active {
         transform: translate(-50%, -50%) scale(0.95);
     }
+}
+
+/* Additional info appears on hover */
+.bubble-content .additional-info {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.bubble:hover .additional-info {
+    opacity: 1;
+}
+
+/* Ensure symbol stays in place during hover */
+.bubble:hover .bubble-content {
+    transform: none;
 }

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Lock } from 'lucide-react';
+
 import { SignalData } from '../types';
 import { extractPrice } from '../utils';
 import Locksvg from './Locksvg';

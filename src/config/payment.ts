@@ -3,9 +3,9 @@ import { mainnet, polygon } from 'wagmi/chains';
 import { getDefaultWallets } from '@rainbow-me/rainbowkit';
 
 // Replace with your actual project ID from WalletConnect
-const projectId = 'YOUR_WALLET_CONNECT_PROJECT_ID';
+const projectId = 'bfd7872dd9235ed6ec86f95411b7d584';
 
-const chains = [mainnet, polygon];
+const chains = [mainnet, polygon] as const;
 
 const { connectors } = getDefaultWallets({
   appName: 'CoinChart Premium',
