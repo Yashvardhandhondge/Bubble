@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { SignalData } from '../types';
 import { extractPrice } from '../utils';

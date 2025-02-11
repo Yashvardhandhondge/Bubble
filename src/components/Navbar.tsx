@@ -214,7 +214,7 @@ export const Navbar = ({
 
          
           <a 
-            href="https://t.me/coinchart_api" 
+            href="http://t.me/adamwernee" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm text-white hover:text-white whitespace-nowrap"

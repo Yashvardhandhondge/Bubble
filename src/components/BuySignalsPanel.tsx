@@ -1,20 +1,85 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { Crown, User } from 'lucide-react';
+import { Crown, User, Loader2 } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa';
 import { FreeSignalCard } from './FreeSignalCard';
-import { PremiumSignalCard } from './PremiumSignalCard';
+import  {PremiumSignalCard } from './PremiumSignalCard';
 import Buttons from './Buttons';
 import { useData } from '../context/DataContext';
 import { useAccount } from 'wagmi';
 
 export const BuySignalsPanel: React.FC = () => {
-  const { signals = [], loading } = useData();
+  const { signals = [], loading: signalsLoading } = useData();
   const { openConnectModal } = useConnectModal();
   const { address } = useAccount();
   
-  // Simplified premium check - you can modify this based on your needs
-  const isPremiumActive = false; // Default to free tier
+  interface UserData {
+    subscription?: {
+      status: string;
+      cancelAtPeriodEnd: boolean;
+    };
+  }
+
+  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [error, setError] = useState('');
+
+
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      if (!address) return;
+      
+      setLoading(true);
+      setError('');
+      
+      try {
+        
+        const registerResponse = await fetch('http://localhost:5000/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ walletAddress: address }),
+        });
+        
+        const registerData = await registerResponse.json();
+        
+        if (!registerData.success) {
+          throw new Error(registerData.message);
+        }
+        
+        // Store JWT token
+        localStorage.setItem('auth_token', registerData.token);
+        
+        // Check subscription status
+        const subscriptionResponse = await fetch('http://localhost:5000/api/auth/check-subscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${registerData.token}`
+          },
+          body: JSON.stringify({ walletAddress: address }),
+        });
+        
+        const subscriptionData = await subscriptionResponse.json();
+        
+        if (!subscriptionData.success) {
+          throw new Error(subscriptionData.message);
+        }
+        
+        setUserData(subscriptionData.user);
+      } catch (err) {
+        console.error('Error checking subscription:', err);
+        setError(err instanceof Error ? err.message : 'Failed to check subscription status');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkUserStatus();
+  }, [address]);
+
+  const isPremiumActive = !userData?.subscription?.cancelAtPeriodEnd;
 
   const handleUpgradeToPremium = () => {
     window.open('https://pay.boomfi.xyz/2rwqC9PH4zXMNqTupAXjsNyNJ3v', '_blank');
@@ -29,7 +94,9 @@ export const BuySignalsPanel: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row items-center justify-between p-4 h-16">
         <div className="flex items-center gap-2">
-          {isPremiumActive ? (
+          {loading ? (
+            <Loader2 className="w-4 h-4 text-white animate-spin" />
+          ) : isPremiumActive ? (
             <>
               <Crown className="w-4 h-4 text-yellow-400" />
               <span className="text-white text-sm">Premium</span>
@@ -58,12 +125,21 @@ export const BuySignalsPanel: React.FC = () => {
 
       {/* Title */}
       <div className="px-4 py-2">
-        <h1 className='text-2xl p-7 text-white font-semibold'>Latest Buy Signals</h1>
+        <h1 className="text-2xl p-7 text-white font-semibold">Latest Buy Signals</h1>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="px-4 py-2">
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+            <p className="text-red-500 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Signals List */}
       <div className="flex-1 overflow-y-auto px-2 pb-6">
-        {loading ? (
+        {signalsLoading || loading ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
         ) : signals?.length > 0 ? (
           <div className="space-y-4">
@@ -83,7 +159,7 @@ export const BuySignalsPanel: React.FC = () => {
       {/* Bottom Action Button */}
       <div className="p-4 border-t border-gray-800/50 mb-4">
         {!isPremiumActive ? (
-          <button onClick={handleUpgradeToPremium} className="w-full h-full p-4">
+          <button onClick={handleUpgradeToPremium} className="w-full h-full ">
             <Buttons/>
           </button>
         ) : (
