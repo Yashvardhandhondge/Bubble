@@ -41,7 +41,13 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Modify the provider props to accept isPremium
+interface DataProviderProps {
+  isPremium: boolean;
+  children: React.ReactNode;
+}
+
+export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children }) => {
   const [data, setData] = useState<CryptoData[]>([]);
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [filteredData, setFilteredData] = useState<CryptoData[]>([]);
@@ -74,11 +80,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchAllData = async () => {
       try {
-        // Fetch both endpoints with retry mechanism
-        const [risksResponse, signalsResponse] = await Promise.all([
-          fetchWithRetry("https://api.coinchart.fun/dex_risks"),
-          fetchWithRetry("https://api.coinchart.fun/dex_signals")
-        ]);
+        // Always fetch risks; conditionally fetch signals
+        const risksResponse = await fetchWithRetry("https://api.coinchart.fun/dex_risks");
+        const signalsResponsePromise = isPremium
+          ? fetchWithRetry("https://api.coinchart.fun/dex_signals")
+          : Promise.resolve({ json: () => Promise.resolve([]) });
 
         if (!isSubscribed) return;
 
@@ -87,10 +93,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sanitizedRisksText = risksText.replace(/NaN/g, "null");
         const risksResult = JSON.parse(sanitizedRisksText);
 
-        // Process signals data
-        const signalsData = await signalsResponse.json();
-        
-        if (!isSubscribed) return;
+        // Process signals data only if premium; otherwise, empty
+        const signalsData = isPremium
+          ? await (await signalsResponsePromise).json()
+          : [];
 
         // Transform and set data
         const transformedRisksData = Object.entries(risksResult)
@@ -109,8 +115,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }))
           .sort((a, b) => (b.volume || 0) - (a.volume || 0));
 
-        const sortedSignals = signalsData.sort(
-          (a: SignalData, b: SignalData) => (b.timestamp || 0) - (a.timestamp || 0)
+        // Sort signals if any
+        const sortedSignals = (signalsData as any[]).sort(
+          (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
         );
 
         setData(transformedRisksData);
@@ -140,7 +147,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearInterval(intervalId);
       }
     };
-  }, []);
+  }, [isPremium]);
 
   // Separate effect for filtering
   useEffect(() => {

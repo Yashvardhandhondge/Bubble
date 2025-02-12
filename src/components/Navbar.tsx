@@ -157,7 +157,7 @@ export const Navbar = ({
       <div className="flex flex-col h-16 lg:flex-row items-center justify-between p-4 bg-gray-800/50"> {/* Changed p-4 to p-5 to match BuySignalsPanel */}
         <div className="flex items-center gap-2 mb-4 lg:mb-0">
           <img
-            src="https://i.ibb.co/znbC3SV/Group.jpg"
+            src="/fav.png"
             alt="Coinchart.fun"
             className="w-8 h-8 lg:w-10 lg:h-10 rounded-full"
           />
@@ -325,13 +325,36 @@ export const Navbar = ({
               </button>
             ))}
             
-         
-            <button
-              onClick={() => setShowTokenSelector(!showTokenSelector)}
-              className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
-            >
-              {showTokenSelector ? <X size={20} /> : <Plus size={20} />}
-            </button>
+            {/* Wrap the button and dropdown in a relative div */}
+            <div className="relative">
+              <button
+                onClick={() => setShowTokenSelector(!showTokenSelector)}
+                className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
+              >
+                {showTokenSelector ? <X size={20} /> : <Plus size={20} />}
+              </button>
+
+              {/* Position dropdown below the button */}
+              {showTokenSelector && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
+                  <div className="p-2">
+                    {allTokens.map(token => (
+                      <button
+                        key={token.id}
+                        onClick={() => toggleToken(token)}
+                        className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                          selectedTokens.some(t => t.id === token.id)
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {token.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -356,25 +379,6 @@ export const Navbar = ({
           </div>
         )}
 
-        {showTokenSelector && (
-          <div className="absolute right-72 top-36 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
-            <div className="p-2">
-              {allTokens.map(token => (
-                <button
-                  key={token.id}
-                  onClick={() => toggleToken(token)}
-                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    selectedTokens.some(t => t.id === token.id)
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  {token.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

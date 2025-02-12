@@ -59,12 +59,12 @@ export const PremiumSignalCard: React.FC<PremiumSignalCardProps> = ({ signal }) 
 
         {/* Expanded Content */}
         <div 
-          className="transition-all duration-200 ease-in-out"
+          className="custom-scrollbar transition-all duration-200 ease-in-out"
           style={{
             opacity: isExpanded ? 1 : 0,
             transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)',
             maxHeight: isExpanded ? '200px' : '0',
-            overflow: 'hidden',
+            overflowY: 'auto',
             visibility: isExpanded ? 'visible' : 'hidden'
           }}
         >
@@ -91,6 +91,23 @@ export const PremiumSignalCard: React.FC<PremiumSignalCardProps> = ({ signal }) 
           </div>
         </div>
       </div>
+      {/* Inline style for scrollbar for this component */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #000;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #555;
+          border-radius: 3px;
+        }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #555 #000;
+        }
+      `}</style>
     </div>
   );
 };

@@ -6,7 +6,7 @@ import './bubble.css';
 import {Wget} from './Wget'; 
 import Modal from './Modal';
 
-const CONTAINER_HEIGHT = window.innerHeight * 0.87; // Adjusted to 85% of viewport height
+const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewport height
 const PADDING_TOP = 80;
 const PADDING_BOTTOM = 60;
 const EFFECTIVE_HEIGHT = CONTAINER_HEIGHT - (PADDING_TOP + PADDING_BOTTOM); // Reduced padding to extend chart
@@ -72,71 +72,18 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       .map(item => ({ ...item } as DataItem));
   }, [filteredData, selectedRange, filters]);
 
-  // Updated color calculation function with more distinct bands
+  // Replace the previous calculateBubbleColor function with the following:
   const calculateBubbleColor = (risk: number) => {
-    // For high risk (red) colors
-    if (risk > 90) {
-      return {
-        border: 'rgba(255, 0, 0, 0.95)',
-        background: 'rgba(255, 0, 0, 0.4)',
-        gradient: 'rgba(255, 0, 0, 0.6)'
-      };
-    }
-    if (risk > 80) {
-      return {
-        border: 'rgba(255, 30, 30, 0.9)',
-        background: 'rgba(255, 30, 30, 0.35)',
-        gradient: 'rgba(255, 30, 30, 0.5)'
-      };
-    }
-    if (risk > 70) {
-      return {
-        border: 'rgba(255, 60, 60, 0.85)',
-        background: 'rgba(255, 60, 60, 0.3)',
-        gradient: 'rgba(255, 60, 60, 0.4)'
-      };
-    }
-    if (risk > 60) {
-      return {
-        border: 'rgba(255, 90, 90, 0.8)',
-        background: 'rgba(255, 90, 90, 0.25)',
-        gradient: 'rgba(255, 90, 90, 0.35)'
-      };
-    }
-    if (risk > 50) {
-      return {
-        border: 'rgba(255, 120, 120, 0.75)',
-        background: 'rgba(255, 120, 120, 0.2)',
-        gradient: 'rgba(255, 120, 120, 0.3)'
-      };
-    }
-    // For low risk (green) colors
-    if (risk > 40) {
-      return {
-        border: 'rgba(120, 255, 120, 0.75)',
-        background: 'rgba(120, 255, 120, 0.2)',
-        gradient: 'rgba(120, 255, 120, 0.3)'
-      };
-    }
-    if (risk > 30) {
-      return {
-        border: 'rgba(90, 255, 90, 0.8)',
-        background: 'rgba(90, 255, 90, 0.25)',
-        gradient: 'rgba(90, 255, 90, 0.35)'
-      };
-    }
-    if (risk > 20) {
-      return {
-        border: 'rgba(60, 255, 60, 0.85)',
-        background: 'rgba(60, 255, 60, 0.3)',
-        gradient: 'rgba(60, 255, 60, 0.4)'
-      };
-    }
-    // Most undervalued (darkest green)
+    const clampedRisk = Math.max(10, Math.min(100, risk));
+    const t = (clampedRisk - 10) / 90; // normalize risk between 0 and 1
+    // Smoothly interpolate from green (low risk) to red (high risk)
+    const borderColor = d3.interpolateRgb("rgba(30,255,30,0.9)", "rgba(255,0,0,0.95)")(t);
+    const backgroundColor = d3.interpolateRgb("rgba(30,255,30,0.35)", "rgba(255,0,0,0.4)")(t);
+    const gradientColor = d3.interpolateRgb("rgba(30,255,30,0.5)", "rgba(255,0,0,0.6)")(t);
     return {
-      border: 'rgba(30, 255, 30, 0.9)',
-      background: 'rgba(30, 255, 30, 0.35)',
-      gradient: 'rgba(30, 255, 30, 0.5)'
+      border: borderColor,
+      background: backgroundColor,
+      gradient: gradientColor
     };
   };
 
@@ -145,7 +92,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     // Normalize risk to the visible range (10-100)
     const normalizedRisk = Math.max(10, Math.min(100, risk));
     // Calculate position as percentage of effective height (inverted)
-    return PADDING_TOP + (EFFECTIVE_HEIGHT * (1 - (normalizedRisk - 10) / 90)); // Adjust for 10-100 range
+    return PADDING_TOP + (EFFECTIVE_HEIGHT * (1 - (normalizedRisk - 10) / 90));
   };
 
   // Update createBubbleHTML to enhance text visibility
@@ -234,8 +181,9 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
     const initializedData = rangeFilteredData.map((d) => ({
       ...d,
-      x: containerWidth / 2 + (Math.random() - 0.5) * containerWidth * 0.4, // Reduced spread
-      y: getRiskBand(d.risk ?? 50),
+      // Added a horizontal offset of 5% of containerWidth
+      x: containerWidth / 2 + (Math.random() - 0.5) * containerWidth * 0.3 + containerWidth * 0.05,
+      y: getRiskBand(d.risk ?? 50)*0.2,
       radius: Math.max(
         BUBBLE_MIN_SIZE, 
         Math.min(BUBBLE_MAX_SIZE, d.bubbleSize ? d.bubbleSize * 35 : 35) // Increased multiplier
@@ -248,9 +196,10 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
         // const riskBand = Math.floor((d.risk || 0) / 10) * 10;
         const bandOffset = ((d.risk || 0) % 10) / 10;
         const spread = containerWidth * 0.07; // Reduced spread
-        return containerWidth / 2 + (bandOffset - 0.5) * spread;
+        // Added offset to shift bubbles right by 5% of containerWidth
+        return containerWidth / 2 + (bandOffset - 0.5) * spread + containerWidth * 0.05;
       }).strength(0.1)) // Increased strength for tighter grouping
-      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50))
+      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50)*1.2)
         .strength(0.9)) // Increased strength for better alignment
       .force("collide", d3.forceCollide<DataItem>()
         .radius(d => d.radius + BUBBLE_PADDING)
@@ -314,12 +263,11 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
   // Create grid lines with equal spacing
   const gridLines = [
-    { range: '100', position: 0 },      // 100% risk
-    { range: '80', position: 20 },      // 80% risk
-    { range: '60', position: 40 },      // 60% risk
-    { range: '40', position: 60 },      // 40% risk
-    { range: '20', position: 80 },      // 20% risk
-    { range: '10', position: 90 }       // 10% risk (bottom)
+    { range: '90', position: 0 },    // 80% risk
+    { range: '70', position: 25 },    // 60% risk
+    { range: '50', position: 50 },    // 40% risk
+    { range: '30', position: 75 },    // 20% risk
+    { range: '10', position: 100 }      // 10% risk (bottom)
   ];
 
   // This function is already defined earlier in the code
@@ -330,22 +278,32 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
         height: CONTAINER_HEIGHT,
         maxHeight: '900px' // Changed from 800px to allow full viewport height
       }}>
-        <div className="relative bg-black h-full overflow-visible">
+        <div className="relative bg-black h-full overflow-visible rounded-xl">
           {/* Update Grid lines positions */}
-          <div className="absolute left-0 top-0 flex flex-col text-sm text-white h-full" style={{ zIndex: 1 }}>
+          <div 
+            className="absolute top-0 flex flex-col text-sm text-white h-full" 
+            style={{ 
+              zIndex: 1, 
+              left: '-10px' // shift entire grid container to left
+            }}
+          >
             {gridLines.map(({ range, position }) => (
               <div 
                 key={range}
                 className="absolute w-full"
-                style={{ 
-                  top: `${position}%`,
-                  transform: 'translateY(-50%)'
-                }}
+                style={{ top: `${position}%`, transform: 'translateY(-50%)' }}
               >
-                <span className="text-xs whitespace-nowrap">{range} -</span>
+                <span 
+                  className="text-xs whitespace-nowrap" 
+                  style={{ marginLeft: "-10px" }} // move tick label further left
+                >
+                  {range} -
+                </span>
                 <div 
-                  className="absolute w-[calc(100vw-32px)] h-[1px] left-[30px]" 
+                  className="absolute h-[1px]" 
                   style={{
+                    left: "15px", // tick line starting position shifted to left
+                    width: "calc(100% - 15px)",
                     backgroundColor: 'rgba(255,255,255,0.1)',
                     zIndex: 1
                   }}
@@ -358,17 +316,17 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
           <div className="absolute left-10 top-2 text-lg font-semibold text-white" style={{ zIndex: 2 }}>
             Risk Levels
           </div>
-          <div className="absolute bottom-2 right-10 text-white font-medium" style={{ zIndex: 2 }}>
-            LOW RISK (10%)
+          <div className="absolute bottom-0 right-0 text-white font-medium p-2" style={{ zIndex: 2 }}>
+            UNDERVALUED
           </div>
-          <div className="absolute top-2 right-10 text-white font-medium" style={{ zIndex: 2 }}>
-            HIGH RISK (100%)
+          <div className="absolute top-0 right-0 text-white font-medium p-2" style={{ zIndex: 2 }}>
+            OVERVALUED
           </div>
 
           {/* Bubble container */}
           <div 
             ref={containerRef}
-            className="custom-div ml-7" 
+            className="custom-div ml-3" // shifted left: changed from ml-7 to ml-3
             style={{ 
               position: 'relative',
               height: '100%',

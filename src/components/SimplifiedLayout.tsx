@@ -16,7 +16,7 @@ const SimplifiedLayout: React.FC<SimplifiedLayoutProps> = ({ children, rightPane
       </div>
 
       {/* Separator Line */}
-      <div className="w-px bg-gradient-to-b from-gray-800/50 via-gray-700/50 to-gray-800/50" />
+      <div className="w-[3px] bg-[#8A8A8A]/30" />
 
       {/* Right Panel */}
       <div 
