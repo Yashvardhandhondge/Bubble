@@ -36,7 +36,7 @@ export const BuySignalsPanel: React.FC = () => {
       
       try {
         
-        const registerResponse = await fetch(' https://sciences-browsing-wt-purchasing.trycloudflare.com/api/subscription/webhook/api/auth/register', {
+        const registerResponse = await fetch('https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export const BuySignalsPanel: React.FC = () => {
         localStorage.setItem('auth_token', registerData.token);
         
         // Check subscription status
-        const subscriptionResponse = await fetch(' https://sciences-browsing-wt-purchasing.trycloudflare.com/api/subscription/webhook/api/auth/check-subscription', {
+        const subscriptionResponse = await fetch('https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/check-subscription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
