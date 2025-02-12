@@ -6,13 +6,13 @@ import './bubble.css';
 import {Wget} from './Wget'; 
 import Modal from './Modal';
 
-const CONTAINER_HEIGHT = window.innerHeight * 0.85; // Adjusted to 85% of viewport height
+const CONTAINER_HEIGHT = window.innerHeight * 0.87; // Adjusted to 85% of viewport height
 const PADDING_TOP = 80;
 const PADDING_BOTTOM = 60;
 const EFFECTIVE_HEIGHT = CONTAINER_HEIGHT - (PADDING_TOP + PADDING_BOTTOM); // Reduced padding to extend chart
-const BUBBLE_MIN_SIZE = 20; // Smaller minimum size
-const BUBBLE_MAX_SIZE = 30; // Smaller maximum size
-const BUBBLE_PADDING = 2; // Reduced padding between bubbles
+const BUBBLE_MIN_SIZE = 15; // Increased from 15
+const BUBBLE_MAX_SIZE = 25; // Increased from 25
+const BUBBLE_PADDING = 5; // Slightly increased padding
 
 
 interface DataItem extends d3.SimulationNodeDatum {
@@ -214,13 +214,13 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
   
 
-  // Initialize and update simulation
+  
   useEffect(() => {
     if (!containerRef.current || !rangeFilteredData.length || !containerWidth) {
       return;
     }
     
-    // Stop previous simulation
+    
     if (simulationRef.current) {
       simulationRef.current.stop();
     }
@@ -238,20 +238,20 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       y: getRiskBand(d.risk ?? 50),
       radius: Math.max(
         BUBBLE_MIN_SIZE, 
-        Math.min(BUBBLE_MAX_SIZE, d.bubbleSize ? d.bubbleSize * 20 : 20)
+        Math.min(BUBBLE_MAX_SIZE, d.bubbleSize ? d.bubbleSize * 35 : 35) // Increased multiplier
       )
     }));
 
     const simulation = d3.forceSimulation<DataItem>(initializedData)
       .force("x", d3.forceX<DataItem>((d) => {
-        // Group bubbles by risk percentage bands
+        
         // const riskBand = Math.floor((d.risk || 0) / 10) * 10;
         const bandOffset = ((d.risk || 0) % 10) / 10;
-        const spread = containerWidth * 0.3; // Reduced spread
+        const spread = containerWidth * 0.07; // Reduced spread
         return containerWidth / 2 + (bandOffset - 0.5) * spread;
       }).strength(0.1)) // Increased strength for tighter grouping
       .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50))
-        .strength(0.99)) // Increased strength for better alignment
+        .strength(0.9)) // Increased strength for better alignment
       .force("collide", d3.forceCollide<DataItem>()
         .radius(d => d.radius + BUBBLE_PADDING)
         .strength(1)) // Maximum strength for collision
@@ -270,7 +270,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       .html(createBubbleHTML)
       .on("click", handleBubbleClick);
 
-    // Add immediate transition for bubble appearance
+
     bubbles.transition()
       .duration(600)
       .style("opacity", "1");
@@ -283,7 +283,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
           return `${yPos}px`;
         })
         .style("transform", "translate(-50%, -50%)")
-        .style("position", "absolute"); // Ensure absolute positioning
+        .style("position", "absolute"); 
     });
 
     return () => {
@@ -312,22 +312,28 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     return <Wget />;
   }
 
+  // Create grid lines with equal spacing
+  const gridLines = [
+    { range: '100', position: 0 },      // 100% risk
+    { range: '80', position: 20 },      // 80% risk
+    { range: '60', position: 40 },      // 60% risk
+    { range: '40', position: 60 },      // 40% risk
+    { range: '20', position: 80 },      // 20% risk
+    { range: '10', position: 90 }       // 10% risk (bottom)
+  ];
+
+  // This function is already defined earlier in the code
+
   return (
     <>
       <div className="relative w-full overflow-visible" style={{ 
         height: CONTAINER_HEIGHT,
-        maxHeight: '900px' 
+        maxHeight: '900px' // Changed from 800px to allow full viewport height
       }}>
         <div className="relative bg-black h-full overflow-visible">
+          {/* Update Grid lines positions */}
           <div className="absolute left-0 top-0 flex flex-col text-sm text-white h-full" style={{ zIndex: 1 }}>
-            {[
-              { range: '100', position: 0 },
-              { range: '80', position: 25 },
-              { range: '60', position: 50 },
-              { range: '40', position: 75 },
-              { range: '20', position: 87.5 },
-              { range: '10', position: 100 },
-            ].map(({ range, position }) => (
+            {gridLines.map(({ range, position }) => (
               <div 
                 key={range}
                 className="absolute w-full"
@@ -353,10 +359,10 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
             Risk Levels
           </div>
           <div className="absolute bottom-2 right-10 text-white font-medium" style={{ zIndex: 2 }}>
-            UNDERVALUED
+            LOW RISK (10%)
           </div>
           <div className="absolute top-2 right-10 text-white font-medium" style={{ zIndex: 2 }}>
-            OVERVALUED
+            HIGH RISK (100%)
           </div>
 
           {/* Bubble container */}
