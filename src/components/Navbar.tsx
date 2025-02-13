@@ -30,7 +30,7 @@ interface Strategy {
 interface Token {
   id: string;
   name: string;
-  type: 'binance' | 'bybit' | 'ai';
+  type: 'binance' | 'BTCC' | 'ai';
 }
 
 interface NavbarProps {
@@ -53,7 +53,7 @@ export const Navbar = ({
   const [selectedRange, setSelectedRange] = useState("Top 100");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeStrategyId, setActiveStrategyId] = useState('1');
-  const [selectedTokenType, setSelectedTokenType] = useState<'binance' | 'bybit' | 'ai'>('binance');
+  const [selectedTokenType, setSelectedTokenType] = useState<'binance' | 'BTCC' | 'ai'>('binance');
   const [activeFilterStrategyId, setActiveFilterStrategyId] = useState<string | null>(null);
 
   const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
@@ -63,7 +63,7 @@ export const Navbar = ({
 
   const [selectedTokens, setSelectedTokens] = useState<Token[]>([
     { id: '1', name: 'Binance', type: 'binance' },
-    { id: '2', name: 'Bybit', type: 'bybit' }
+    { id: '2', name: 'BTCC', type: 'BTCC' }
   ]);
 
   const allStrategies: Strategy[] = [
@@ -74,7 +74,7 @@ export const Navbar = ({
 
   const allTokens: Token[] = [
     { id: '1', name: 'Binance', type: 'binance' },
-    { id: '2', name: 'Bybit', type: 'bybit' },
+    { id: '2', name: 'BTCC', type: 'BTCC' },
     { id: '3', name: 'AI Agent', type: 'ai' }
   ];
 
@@ -307,7 +307,7 @@ export const Navbar = ({
 
       
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0 lg:ml-8">
-          <span className="text-white whitespace-nowrap">Token:</span>
+          <span className="text-white whitespace-nowrap">Tokens:</span>
           <div className="flex flex-wrap gap-2">
             {selectedTokens.map(token => (
               <button
