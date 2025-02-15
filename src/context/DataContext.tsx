@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 // Add SignalData to the types
 interface SignalData {
@@ -59,9 +59,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
     marketCapFilter: false,
   });
 
+  const isMounted = useRef(false);
+
   // Add a retry mechanism
-  const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
+  const fetchWithRetry = async (url: string, retries = 1): Promise<Response> => {
     for (let i = 0; i < retries; i++) {
+      console.log("Fetching data...", i);
+      
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -75,6 +79,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
   };
 
   useEffect(() => {
+    if (isMounted.current) return; // Prevent duplicate fetches
+    isMounted.current = true;
+
     let isSubscribed = true;
     let intervalId: NodeJS.Timeout | null = null;
 
@@ -138,7 +145,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
     fetchAllData();
     
     // Set up interval for periodic updates
-    intervalId = setInterval(fetchAllData, 60000); // Every minute
+    // intervalId = setInterval(fetchAllData, 60000000); // Every minute
 
     // Cleanup function
     return () => {

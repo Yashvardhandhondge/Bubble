@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { ChevronRight, AlertTriangle } from 'lucide-react';
 import { SignalData } from '../types';
 import { extractPrice } from '../utils';
 import Locksvg from './Locksvg';
@@ -11,24 +11,53 @@ interface FreeSignalCardProps {
 
 export const FreeSignalCard: React.FC<FreeSignalCardProps> = ({ signal, onUpgrade }) => {
   return (
-    // Wrap the entire card content in a scrollable container in case of overflow
-    <div className="custom-scrollbar relative p-4 rounded-xl bg-gray-800/50 border border-gray-700" style={{ overflowY: 'auto' }}>
-      <div className="absolute inset-0 bg-green-700/40 backdrop-blur-sm rounded-xl flex items-center justify-center">
-        <Locksvg/>
+    <div className="bg-[#08190C] border border-[#05621C] rounded-lg p-4 relative overflow-hidden h-[120px] custom-scrollbar">
+      {/* Blur overlay with lock */}
+      <div 
+        className="absolute inset-0 backdrop-blur-[6px] bg-green-900/40 rounded-lg 
+        flex items-center justify-center z-10 cursor-pointer"
+        style={{
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)'
+        }}
+        onClick={onUpgrade}
+      >
+        <Locksvg />
       </div>
-      <div className="flex justify-between mb-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl font-semibold text-white">
-              ${signal.symbol}
-            </span>
+
+      {/* Mirrored Premium Card Content */}
+      <div className="absolute top-2 left-4 right-4 flex justify-between items-start">
+        <span className="text-xl font-bold text-white flex items-center gap-1">
+          <span className="">$</span>
+          {signal.symbol}
+        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-orange-400 text-sm">15m ago</span>
+          <div className="text-gray-400">
+            <ChevronRight className="w-5 h-5" />
           </div>
-          <span className="text-xl font-bold text-white">
-            ${extractPrice(signal.description)}
-          </span>
         </div>
       </div>
-      {/* Inline style for scrollbar for this component */}
+
+      <div className="relative pt-7">
+        <div className="mb-2">
+          <span className="text-2xl font-bold text-white flex items-center gap-1">
+            <span className="text-gray-400 text-lg">$</span>
+            {extractPrice(signal.description)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 text-sm mb-2">
+          <div className="flex items-center gap-1 text-gray-300">
+            <span>Dangers: <span className="text-white">2/4</span></span>
+            <AlertTriangle className="w-4 h-4 text-yellow-500" />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-gray-400">Risk: <span className="text-white">44/100</span></span>
+          </div>
+        </div>
+      </div>
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;

@@ -113,14 +113,22 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
             </div>
           </div>
           <div class="absolute inset-0 flex flex-col items-center justify-center text-center cursor-pointer">
-            ${d.icon ? `
-              <img 
-                src="${d.icon}" 
-                alt="${d.symbol}" 
-                style="width: ${iconSize}; height: ${iconSize}; object-fit: contain; margin-bottom: 4px;"
-                loading="lazy"
-              />
-            ` : ''}
+              ${
+              d.icon
+                ? `<img 
+                    src="${d.icon}" 
+                    alt="${d.symbol}" 
+                    style="width: ${iconSize}; height: ${iconSize}; object-fit: contain; margin-bottom: 4px;"
+                    loading="lazy"
+                    onerror="this.onerror=null;this.src='/deafult.png';"
+                  />`
+                : `<img 
+                    src="/deafult.png" 
+                    alt="${d.symbol}" 
+                    style="width: ${iconSize}; height: ${iconSize}; object-fit: contain; margin-bottom: 4px;"
+                    loading="lazy"
+                  />`
+            }
             <span 
               class="font-extrabold tracking-wider"
               style="
