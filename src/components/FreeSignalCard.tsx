@@ -43,7 +43,7 @@ export const FreeSignalCard: React.FC<FreeSignalCardProps> = ({ signal, onUpgrad
         <div className="mb-2">
           <span className="text-2xl font-bold text-white flex items-center gap-1">
             <span className="text-gray-400 text-lg">$</span>
-            {extractPrice(signal.description)}
+            {signal?.description ? extractPrice(signal.description) : '0'}
           </span>
         </div>
 

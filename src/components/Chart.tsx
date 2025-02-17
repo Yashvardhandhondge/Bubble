@@ -65,7 +65,7 @@ export const Chart = ({ onClose, tokenAddress = '0x2260fac5e5542a773aa44fbcfedf7
       <div 
         className='relative bg-gray-900 rounded-xl w-4/5 h-4/5 flex flex-col items-center justify-center z-[99999999999]'
       >
-        {/* Close Button */}
+
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center 
