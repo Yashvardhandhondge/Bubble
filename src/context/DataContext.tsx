@@ -37,17 +37,18 @@ interface DataContextType {
   error: string | null;
   filters: FilterSettings;
   updateFilters: (newFilters: Partial<FilterSettings>) => void;
+  isPremium: boolean;
+  setIsPremium: (status: boolean) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 // Modify the provider props to accept isPremium
 interface DataProviderProps {
-  isPremium: boolean;
   children: React.ReactNode;
 }
 
-export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children }) => {
+export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [data, setData] = useState<CryptoData[]>([]);
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [filteredData, setFilteredData] = useState<CryptoData[]>([]);
@@ -60,6 +61,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
   });
 
   const isMounted = useRef(false);
+  const [isPremium, setIsPremium] = useState(() => 
+    localStorage.getItem('premium_status') === 'active'
+  );
 
   // Add a retry mechanism
   const fetchWithRetry = async (url: string, retries = 1): Promise<Response> => {
@@ -89,9 +93,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
       try {
         // Always fetch risks; conditionally fetch signals
         const risksResponse = await fetchWithRetry("https://api.coinchart.fun/dex_risks");
-        const signalsResponsePromise = isPremium
-          ? fetchWithRetry("https://api.coinchart.fun/dex_signals")
-          : Promise.resolve({ json: () => Promise.resolve([]) });
+        const signalsResponse = await fetchWithRetry("https://api.coinchart.fun/dex_signals");
 
         if (!isSubscribed) return;
 
@@ -101,9 +103,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
         const risksResult = JSON.parse(sanitizedRisksText);
 
         // Process signals data only if premium; otherwise, empty
-        const signalsData = isPremium
-          ? await (await signalsResponsePromise).json()
-          : [];
+        const signalsData = await signalsResponse.json();
 
         // Transform and set data
         const transformedRisksData = Object.entries(risksResult)
@@ -154,7 +154,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
         clearInterval(intervalId);
       }
     };
-  }, [isPremium]);
+  }, []);
 
   // Separate effect for filtering
   useEffect(() => {
@@ -208,7 +208,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ isPremium, children 
       loading,
       error,
       filters,
-      updateFilters
+      updateFilters,
+      isPremium,
+      setIsPremium
     }}>
       {children}
     </DataContext.Provider>

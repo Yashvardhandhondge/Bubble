@@ -3,6 +3,8 @@ import { WagmiConfig } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { wagmiConfig } from './config/payment';
+import { Toaster } from 'react-hot-toast';
+import PaymentVerification from './components/PaymentVerification';
 
 import { Navbar } from './components/Navbar';
 import ChartAdapter from './components/ChartAdapter';
@@ -26,6 +28,8 @@ function App() {
       <RainbowKitProvider modalSize="compact">
         <DataProvider>
           <Router>
+            <Toaster />
+            <PaymentVerification />
             <Routes>
               <Route path="/" element={
                 <SimplifiedLayout rightPanel={<BuySignalsPanel />}>

@@ -14,6 +14,9 @@ export const BuySignalsPanel: React.FC = () => {
   const { signals = [], loading: signalsLoading } = useData();
   const { openConnectModal } = useConnectModal();
   const { address } = useAccount();
+  const [isPremium, setIsPremium] = useState(() => 
+    localStorage.getItem('premium_status') === 'active'
+  );
   
   interface UserData {
     subscription?: {
@@ -36,7 +39,7 @@ export const BuySignalsPanel: React.FC = () => {
       
       try {
         
-        const registerResponse = await fetch('https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/register', {
+        const registerResponse = await fetch('https://fifth-alter-direction-stores.trycloudflare.com/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -54,7 +57,7 @@ export const BuySignalsPanel: React.FC = () => {
         localStorage.setItem('auth_token', registerData.token);
         
         // Check subscription status
-        const subscriptionResponse = await fetch('https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/check-subscription', {
+        const subscriptionResponse = await fetch('https://fifth-alter-direction-stores.trycloudflare.com/api/auth/check-subscription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -80,6 +83,17 @@ export const BuySignalsPanel: React.FC = () => {
     
     checkUserStatus();
   }, [address]);
+
+  useEffect(() => {
+    // Check URL params for payment verification
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('pid');
+    
+    if (pid) {
+      setIsPremium(true);
+      localStorage.setItem('premium_status', 'active');
+    }
+  }, []);
 
   const isPremiumActive = userData && !!!userData?.subscription?.cancelAtPeriodEnd;
   
@@ -187,5 +201,3 @@ export const BuySignalsPanel: React.FC = () => {
     </div>
   );
 };
-
-export default BuySignalsPanel;
