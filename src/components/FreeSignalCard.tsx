@@ -6,10 +6,9 @@ import Locksvg from './Locksvg';
 
 interface FreeSignalCardProps {
   signal: SignalData;
-  onUpgrade: () => void;
 }
 
-export const FreeSignalCard: React.FC<FreeSignalCardProps> = ({ signal, onUpgrade }) => {
+export const FreeSignalCard: React.FC<FreeSignalCardProps> = ({ signal}) => {
   return (
     <div className="bg-[#08190C] border border-[#05621C] rounded-lg p-4 relative overflow-hidden h-[120px] custom-scrollbar">
       {/* Blur overlay with lock */}
@@ -20,7 +19,6 @@ export const FreeSignalCard: React.FC<FreeSignalCardProps> = ({ signal, onUpgrad
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)'
         }}
-        onClick={onUpgrade}
       >
         <Locksvg />
       </div>

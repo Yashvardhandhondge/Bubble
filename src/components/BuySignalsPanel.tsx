@@ -173,7 +173,8 @@ export const BuySignalsPanel: React.FC = () => {
               isPremiumActive ? (
                 <PremiumSignalCard key={index} signal={signal} />
               ) : (
-                <FreeSignalCard key={index} signal={signal} onUpgrade={handleUpgradeToPremium} />
+                <FreeSignalCard key={index} signal={signal}  />
+                
               )
             )}
           </div>
