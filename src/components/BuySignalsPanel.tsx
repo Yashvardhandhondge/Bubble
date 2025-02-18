@@ -38,8 +38,8 @@ export const BuySignalsPanel: React.FC = () => {
       setError('');
       
       try {
-        
-        const registerResponse = await fetch('https://fifth-alter-direction-stores.trycloudflare.com/api/auth/register', {
+        // Updated API endpoint
+        const registerResponse = await fetch('https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -56,8 +56,8 @@ export const BuySignalsPanel: React.FC = () => {
         // Store JWT token
         localStorage.setItem('auth_token', registerData.token);
         
-        // Check subscription status
-        const subscriptionResponse = await fetch('https://fifth-alter-direction-stores.trycloudflare.com/api/auth/check-subscription', {
+        // Updated API endpoint for subscription check
+        const subscriptionResponse = await fetch('https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/check-subscription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WagmiConfig } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -14,15 +14,54 @@ import { CryptoData } from './types';
 import '@rainbow-me/rainbowkit/styles.css';
 import { DataProvider } from './context/DataContext';
 import SimplifiedLayout from './components/SimplifiedLayout';
+import { MobileNavbar } from './components/MobileNavbar';
+import { ViewContainer } from './components/ViewContainer';
+import { ViewType } from './types';
 
 function App() {
   const [selectedRange, setSelectedRange] = useState("Top 100");
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [currentView, setCurrentView] = useState<ViewType>('chart');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Check initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   function handleBubbleClick(crypto: CryptoData): void {
     setSelectedCrypto(crypto);
   }
 
+  // Mobile View
+  if (isMobile) {
+    return (
+      <WagmiConfig config={wagmiConfig}>
+        <RainbowKitProvider modalSize="compact">
+          <DataProvider>
+            <Router>
+              <div className="h-screen bg-gray-900 relative">
+                <MobileNavbar 
+                  currentView={currentView}
+                  onViewChange={setCurrentView}
+                />
+                <ViewContainer currentView={currentView} />
+              </div>
+              <Toaster />
+            </Router>
+          </DataProvider>
+        </RainbowKitProvider>
+      </WagmiConfig>
+    );
+  }
+
+  // Desktop View
   return (
     <WagmiConfig config={wagmiConfig}>
       <RainbowKitProvider modalSize="compact">

@@ -27,6 +27,8 @@ export interface TimeframeData {
 
 export type Timeframe = 'Hour' | 'Day' | 'Week' | 'Month' | 'Year';
 
+export type ViewType = 'chart' | 'settings' | 'menu';
+
 export interface SubscriptionPlan {
   id: string;
   name: string;

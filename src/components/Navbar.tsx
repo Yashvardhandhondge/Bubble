@@ -109,21 +109,22 @@ export const Navbar = ({
     onRangeChange(range);
   };
 
-  const toggleStrategy = (strategy: Strategy) => {
-    if (selectedStrategies.find(s => s.id === strategy.id)) {
-      if (selectedStrategies.length > 1) {
-        setSelectedStrategies(selectedStrategies.filter(s => s.id !== strategy.id));
-        if (strategy.id === activeStrategyId) {
-          const remainingStrategies = selectedStrategies.filter(s => s.id !== strategy.id);
-          setActiveStrategyId(remainingStrategies[0].id);
-          onStrategyChange?.(remainingStrategies[0]);
-        }
-      }
-    } else {
-      const updatedStrategies = [...selectedStrategies, strategy];
-      setSelectedStrategies(updatedStrategies);
+  const toggleStrategy = (event: React.MouseEvent, strategy: Strategy) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('Toggling strategy:', strategy.name);
+    
+    const isSelected = selectedStrategies.some(s => s.id === strategy.id);
+    if (!isSelected) {
+      const newStrategies = [...selectedStrategies, strategy];
+      console.log('New strategies:', newStrategies);
+      setSelectedStrategies(newStrategies);
+      setActiveStrategyId(strategy.id);
       onStrategyChange?.(strategy);
     }
+    
+    setShowStrategySelector(false);
   };
 
   const toggleToken = (token: Token) => {
@@ -238,70 +239,63 @@ export const Navbar = ({
      
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto">
           <span className="text-white whitespace-nowrap">Strategies:</span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 relative">
             {selectedStrategies.map(strategy => (
-              <div key={strategy.id} className="relative">
+              <button
+                key={strategy.id}
+                onClick={() => {
+                  console.log('Strategy button clicked:', strategy);
+                  setActiveStrategyId(strategy.id);
+                  onStrategyChange?.(strategy);
+                }}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors
+                  ${strategy.id === activeStrategyId 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              >
+                {strategy.name}
+                {strategy.type === 'short' && (
+                  <button
+                    className="filters-button ml-1"
+                    onClick={(e) => handleFilterClick(strategy.id, e)}
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+                )}
+              </button>
+            ))}
+
+            {selectedStrategies.length < allStrategies.length && (
+              <div className="relative">
                 <button
-                  onClick={() => {
-                    setActiveStrategyId(strategy.id);
-                    onStrategyChange?.(strategy);
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowStrategySelector(!showStrategySelector);
                   }}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors
-                    ${strategy.id === activeStrategyId 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                  className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
                 >
-                  {strategy.name}
-                  {strategy.type === 'short' && (
-                    <button
-                      className="filters-button ml-1"
-                      onClick={(e) => handleFilterClick(strategy.id, e)}
-                    >
-                      <SlidersHorizontal size={18} />
-                    </button>
-                  )}
+                  {showStrategySelector ? <X size={20} /> : <Plus size={20} />}
                 </button>
 
-                {strategy.type === 'short' && 
-                 showFilters && 
-                 activeFilterStrategyId === strategy.id && (
-                  <div 
-                    className="filters-dropdown absolute left-0 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg z-[100]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="p-4 space-y-3">
-                      <h3 className="text-white font-semibold mb-2">Filters</h3>
-                      <div className="space-y-2">
-                        {Object.entries(filters).map(([key, value]) => (
-                          <label 
-                            key={key} 
-                            className="flex items-center gap-2 text-white cursor-pointer"
-                            onClick={(e) => e.stopPropagation()}
+                {showStrategySelector && (
+                  <div className="absolute left-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-[9999]">
+                    <div className="p-2">
+                      {allStrategies
+                        .filter(strategy => !selectedStrategies.some(s => s.id === strategy.id))
+                        .map(strategy => (
+                          <button
+                            key={strategy.id}
+                            onClick={(e) => toggleStrategy(e, strategy)}
+                            className="w-full text-left px-3 py-2 rounded transition-colors text-gray-300 hover:bg-gray-700"
                           >
-                            <input
-                              type="checkbox"
-                              checked={value}
-                              onChange={(e) => handleFilterOptionClick(key as keyof Filters, e.target.checked, e)}
-                              className="rounded bg-gray-700 border-gray-600 cursor-pointer"
-                            />
-                            <span className="text-sm select-none">
-                              {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                            </span>
-                          </label>
+                            {strategy.name}
+                          </button>
                         ))}
-                      </div>
                     </div>
                   </div>
                 )}
               </div>
-            ))}
-
-            <button
-              onClick={() => setShowStrategySelector(!showStrategySelector)}
-              className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
-            >
-              {showStrategySelector ? <X size={20} /> : <Plus size={20} />}
-            </button>
+            )}
           </div>
         </div>
 
@@ -324,8 +318,7 @@ export const Navbar = ({
                 {token.name}
               </button>
             ))}
-            
-            {/* Wrap the button and dropdown in a relative div */}
+        
             <div className="relative">
               <button
                 onClick={() => setShowTokenSelector(!showTokenSelector)}
@@ -334,7 +327,7 @@ export const Navbar = ({
                 {showTokenSelector ? <X size={20} /> : <Plus size={20} />}
               </button>
 
-              {/* Position dropdown below the button */}
+        
               {showTokenSelector && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
                   <div className="p-2">
@@ -365,7 +358,7 @@ export const Navbar = ({
               {allStrategies.map(strategy => (
                 <button
                   key={strategy.id}
-                  onClick={() => toggleStrategy(strategy)}
+                  onClick={(e) => toggleStrategy(e, strategy)}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
                     selectedStrategies.some(s => s.id === strategy.id)
                       ? 'bg-blue-600 text-white'

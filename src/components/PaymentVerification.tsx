@@ -21,7 +21,7 @@ const PaymentVerification: React.FC = () => {
           throw new Error('Authentication required');
         }
 
-        const response = await fetch(`https://fifth-alter-direction-stores.trycloudflare.com/api/auth/verify-subscription/${pid}`, {
+        const response = await fetch(`https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/verify-subscription/${pid}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -33,11 +33,7 @@ const PaymentVerification: React.FC = () => {
         const data = await response.json();
         
         if (data.success) {
-          toast.success('Thanks for purchasing premium!', {
-            duration: 5000,
-            position: 'top-right',
-          });
-          // Update local storage to indicate premium status
+          toast.success('Thanks for purchasing premium!');
           localStorage.setItem('premium_status', 'active');
           navigate('/', { replace: true });
         } else {
