@@ -108,7 +108,7 @@ export const Navbar = ({
         setShowRankDropdown(false);
         setShowStrategySelector(false);
         setShowTokenSelector(false);
-        if (!target.closest('.filters-button')) {
+        if (!target.closest('.filters-button') && !target.closest('.strategy-filter-container')) {
           setShowFilters(false);
           setActiveFilterStrategyId(null);
         }
@@ -154,6 +154,7 @@ export const Navbar = ({
 
   // Fixed handleFilterClick function
   const handleFilterClick = (strategyId: string, event: React.MouseEvent) => {
+    // This is critical to prevent the parent button's onClick from firing
     event.preventDefault();
     event.stopPropagation();
     console.log('Filter clicked for strategy:', strategyId);
@@ -188,7 +189,6 @@ export const Navbar = ({
 
   return (
     <div className="flex flex-col w-full bg-gray-900">
-
       <div className="flex flex-col h-16 lg:flex-row items-center justify-between p-4 bg-gray-800/50">
         <div className="flex items-center gap-2 mb-4 lg:mb-0">
           <img
@@ -246,7 +246,6 @@ export const Navbar = ({
               </div>
             )}
           </div>
-
          
           <a 
             href="http://t.me/adamwernee" 
@@ -258,7 +257,6 @@ export const Navbar = ({
             <FaTelegram size={14} className="text-blue-400" />
           </a>
         </div>
-
         
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -275,37 +273,93 @@ export const Navbar = ({
           <span className="text-white whitespace-nowrap">Strategies:</span>
           <div className="flex flex-wrap gap-2 relative">
             {selectedStrategies.map(strategy => (
-              <div key={strategy.id} className="relative inline-flex items-center">
+              <div key={strategy.id} className="relative strategy-filter-container">
+                {/* Strategy button - separate from filter button */}
                 <button
                   onClick={() => {
+                    console.log('Strategy button clicked:', strategy);
                     setActiveStrategyId(strategy.id);
                     onStrategyChange?.(strategy);
                   }}
-                  className={`px-4 py-1.5 rounded-full transition-colors ${
-                    strategy.id === activeStrategyId
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors
+                    ${strategy.id === activeStrategyId 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
                 >
                   {strategy.name}
                   {strategy.type === 'short' && (
-                    <button
-                      className="filters-button ml-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (activeFilterStrategyId === strategy.id) {
-                          setShowFilters(false);
-                          setActiveFilterStrategyId(null);
-                        } else {
-                          setShowFilters(true);
-                          setActiveFilterStrategyId(strategy.id);
-                        }
-                      }}
+                    <span 
+                      className="filters-button ml-1 cursor-pointer"
+                      onClick={(e) => handleFilterClick(strategy.id, e)}
                     >
                       <SlidersHorizontal size={18} />
-                    </button>
+                    </span>
                   )}
                 </button>
+                
+                {/* Filter dropdown for short-term strategy */}
+                {showFilters && activeFilterStrategyId === strategy.id && strategy.type === 'short' && (
+                  <div className="absolute left-0 top-10 mt-2 w-64 bg-gray-800 rounded-lg shadow-lg z-50 filters-dropdown">
+                    <div className="p-3 space-y-3">
+                      <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                        <h3 className="text-white font-medium">Filter Options</h3>
+                        <button 
+                          onClick={() => {
+                            setShowFilters(false);
+                            setActiveFilterStrategyId(null);
+                          }}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                          <input
+                            type="checkbox"
+                            checked={filterOptions.skipTraps}
+                            onChange={(e) => handleFilterOptionClick('skipTraps', e.target.checked)}
+                            className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                          />
+                          Skip Potential Traps
+                        </label>
+                        
+                        <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                          <input
+                            type="checkbox"
+                            checked={filterOptions.avoidHype}
+                            onChange={(e) => handleFilterOptionClick('avoidHype', e.target.checked)}
+                            className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                          />
+                          Avoid Overhyped Tokens
+                        </label>
+                        
+                        <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                          <input
+                            type="checkbox"
+                            checked={filterOptions.minMarketCap}
+                            onChange={(e) => handleFilterOptionClick('minMarketCap', e.target.checked)}
+                            className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                          />
+                          Min Market Cap Filter
+                        </label>
+                      </div>
+                      
+                      <div className="pt-2 border-t border-gray-700 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setShowFilters(false);
+                            setActiveFilterStrategyId(null);
+                          }}
+                          className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
@@ -372,7 +426,6 @@ export const Navbar = ({
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
