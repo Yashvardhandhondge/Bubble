@@ -39,18 +39,18 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     const updateDimensions = () => {
       const vh = window.innerHeight;
       const vw = window.innerWidth;
-      
-      const availableHeight = vh * 0.85 - 0; 
-      
+      const availableHeight = vh * 0.85; 
       setContainerDimensions({
-        width: vw - 0,
+        width: vw,
         height: availableHeight
       });
     };
 
     updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    if (window.innerWidth >= 768) {
+      window.addEventListener('resize', updateDimensions);
+      return () => window.removeEventListener('resize', updateDimensions);
+    }
   }, []);
 
   // Filter data based on selected range
@@ -201,6 +201,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       .velocityDecay(0.3);
 
     simulationRef.current = simulation;
+
+    // If on mobile, schedule simulation to stop after it settles (e.g. after 1 second)
+    if (window.innerWidth < 768) {
+      setTimeout(() => simulation.stop(), 1000);
+    }
 
     // Create bubbles
     const bubbles = bubbleContainer
