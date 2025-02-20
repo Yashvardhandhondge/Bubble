@@ -202,12 +202,14 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
 
     // Add custom force to adjust top bubbles sideways
     simulation.force("topAdjust", (alpha: number) => {
-      const threshold = height * 0.2;
+      const threshold = height * 0.1;
       const centerX = width / 2;
       simulation.nodes().forEach(d => {
         if (d.y < threshold) {
+          // Initialize vx if undefined
+          if (d.vx === undefined) d.vx = 0.2;
           // Increase horizontal velocity away from the center
-          d.vx += ((d.x - centerX) * 0.05) * alpha;
+          d.vx += ((d.x - centerX) * 0.12) * alpha;
         }
       });
     });
