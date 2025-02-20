@@ -21,7 +21,7 @@ const PaymentVerification: React.FC = () => {
           throw new Error('Authentication required');
         }
 
-        const response = await fetch(`https://sciences-browsing-wt-purchasing.trycloudflare.com/api/auth/verify-subscription/${pid}`, {
+        const response = await fetch(`http://localhost:5000/api/auth/verify-subscription/${pid}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

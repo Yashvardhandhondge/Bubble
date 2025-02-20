@@ -44,7 +44,7 @@ export const Navbar = ({
   onStrategyChange,
   onTokenSourceChange 
 }: NavbarProps) => {
-  const { filters, updateFilters } = useData();
+  const { filters, updateFilters, setCurrentToken } = useData();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showRankDropdown, setShowRankDropdown] = useState(false);
   const [showStrategySelector, setShowStrategySelector] = useState(false);
@@ -303,51 +303,23 @@ export const Navbar = ({
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0 lg:ml-8">
           <span className="text-white whitespace-nowrap">Tokens:</span>
           <div className="flex flex-wrap gap-2">
-            {selectedTokens.map(token => (
+            {allTokens.map(token => (
               <button
                 key={token.id}
                 onClick={() => {
-                  setSelectedTokenType(token.type);
                   onTokenSourceChange?.(token.type);
+                  setCurrentToken(token.type === 'ai' ? "cookiefun" : token.type.toLowerCase());
+                  setSelectedTokenType(token.type);
                 }}
                 className={`px-4 py-1.5 rounded-full transition-colors
-                  ${token.type === selectedTokenType
+                  ${selectedTokenType === token.type
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
               >
                 {token.name}
               </button>
             ))}
-        
-            <div className="relative">
-              <button
-                onClick={() => setShowTokenSelector(!showTokenSelector)}
-                className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
-              >
-                {showTokenSelector ? <X size={20} /> : <Plus size={20} />}
-              </button>
-
-        
-              {showTokenSelector && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
-                  <div className="p-2">
-                    {allTokens.map(token => (
-                      <button
-                        key={token.id}
-                        onClick={() => toggleToken(token)}
-                        className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                          selectedTokens.some(t => t.id === token.id)
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-300 hover:bg-gray-700'
-                        }`}
-                      >
-                        {token.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 

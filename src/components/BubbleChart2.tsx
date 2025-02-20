@@ -191,7 +191,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       ...d,
       // Added a horizontal offset of 5% of containerWidth
       x: containerWidth / 2 + (Math.random() - 0.5) * containerWidth * 0.3 + containerWidth * 0.05,
-      y: getRiskBand(d.risk ?? 50)*0.2,
+      y: getRiskBand(d.risk ?? 50),
       radius: Math.max(
         BUBBLE_MIN_SIZE, 
         Math.min(BUBBLE_MAX_SIZE, d.bubbleSize ? d.bubbleSize * 35 : 35) // Increased multiplier
@@ -207,7 +207,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
         // Added offset to shift bubbles right by 5% of containerWidth
         return containerWidth / 2 + (bandOffset - 0.5) * spread + containerWidth * 0.05;
       }).strength(0.1)) // Increased strength for tighter grouping
-      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50)*1.2)
+      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50))
         .strength(0.9)) // Increased strength for better alignment
       .force("collide", d3.forceCollide<DataItem>()
         .radius(d => d.radius + BUBBLE_PADDING)

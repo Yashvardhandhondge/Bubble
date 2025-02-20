@@ -46,12 +46,16 @@ function App() {
         <RainbowKitProvider modalSize="compact">
           <DataProvider>
             <Router>
-              <div className="h-screen bg-gray-900 relative">
+              <div className="h-screen bg-black md:bg-gray-900 relative">
                 <MobileNavbar 
                   currentView={currentView}
                   onViewChange={setCurrentView}
                 />
-                <ViewContainer currentView={currentView} />
+                <ViewContainer 
+                  currentView={currentView} 
+                  selectedRange={selectedRange} 
+                  setSelectedRange={setSelectedRange} 
+                />
               </div>
               <Toaster />
             </Router>

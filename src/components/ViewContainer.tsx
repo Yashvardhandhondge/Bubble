@@ -4,6 +4,7 @@ import BubbleChart from './BubbleChart2';
 import { BuySignalsPanel } from './BuySignalsPanel';
 import { Plus } from 'lucide-react';
 import { Strategy } from '../types';
+import MobileBubbleChart from './Bubblechart1';
 
 interface ViewContainerProps {
   currentView: ViewType;
@@ -58,9 +59,9 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
 
             
             <div className="flex-1">
-              <BubbleChart 
+              <MobileBubbleChart
                 selectedRange={selectedRange}
-                onBubbleClick={() => {}}
+
               />
             </div>
           </div>
@@ -91,7 +92,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
 
       case 'menu':
         return (
-          <div className="h-[80vh] pt-[10vh] pb-[10vh] overflow-hidden">
+          <div className="h-[100vh] pt-[8vh] pb-[8vh] overflow-hidden">
             <BuySignalsPanel />
           </div>
         );
@@ -102,7 +103,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   };
 
   return (
-    <div className="bg-gray-900 min-h-screen">
+    <div className="min-h-screen">
       {renderView()}
     </div>
   );
