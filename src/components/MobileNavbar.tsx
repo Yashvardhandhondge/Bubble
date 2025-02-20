@@ -78,7 +78,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
         {/* Left Side: Range Filter Dropdown */}
         <div className="relative" ref={dropdownRef}>
-          {currentView === 'chart' && (
+          {(currentView === 'chart' || currentView === 'settings') && (
             <>
               <button 
                 onClick={toggleRangeDropdown}

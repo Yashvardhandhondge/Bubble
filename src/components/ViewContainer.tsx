@@ -133,12 +133,13 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     </div>
   );
 
+  
+
   const renderView = () => {
     switch (currentView) {
       case 'chart':
         return (
           <div className="min-h-[80vh] flex flex-col">
-            {/* Reduce top padding from 12vh to 8vh */}
             <div className="pt-[8vh] px-4 pb-4">
               {renderTokenSelector()}
             </div>
@@ -151,7 +152,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
       case 'settings':
         return (
           <div className="min-h-[80vh] flex flex-col">
-            {/* Reduce top padding similarly */}
             <div className="pt-[8vh] px-4 pb-4">
               {/* Strategy controls */}
               <div className="flex flex-wrap gap-2 mb-4">
@@ -233,8 +233,8 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
                   <Plus size={20} className="text-white" />
                 </button>
               </div>
-              {/* Token selector for settings view */}
-              {renderTokenSelector()}
+              {/* Use new settings token selector */}
+              {/* {renderSettingsTokenSelector()} */}
             </div>
 
             {/* Ensure chart is displayed in settings */}
