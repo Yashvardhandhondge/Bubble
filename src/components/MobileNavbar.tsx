@@ -100,7 +100,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           )}
         </div>
 
-        <div className="flex border border-white rounded-lg overflow-hidden">
+        <div className="flex border border-white rounded-lg mb-4 overflow-hidden">
           <button 
             onClick={() => onViewChange('chart')}
             className={`flex items-center justify-center w-[60px] h-[50px] ${currentView === 'chart' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
