@@ -272,7 +272,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
   return (
     <>
       <div 
-        className="w-full h-[74vh] pt-[3vh] relative overflow-hidden" // changed pt from 8vh to 4vh
+        className="w-full h-[76vh] pt-[2vh] relative " // changed pt from 8vh to 4vh
         style={{ paddingBottom: '10vh' }}
       >
         {/* Matching gradient background from main component */}

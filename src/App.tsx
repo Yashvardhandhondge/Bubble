@@ -47,15 +47,18 @@ function App() {
           <DataProvider>
             <Router>
               <div className="h-screen bg-black md:bg-gray-900 relative">
-                <MobileNavbar 
-                  currentView={currentView}
-                  onViewChange={setCurrentView}
-                />
-                <ViewContainer 
-                  currentView={currentView} 
-                  selectedRange={selectedRange} 
-                  setSelectedRange={setSelectedRange} 
-                />
+              <MobileNavbar 
+          onViewChange={setCurrentView} 
+          currentView={currentView}
+          selectedRange={selectedRange}
+          onRangeChange={setSelectedRange}
+        />
+
+<ViewContainer 
+          currentView={currentView} 
+          selectedRange={selectedRange}
+          setSelectedRange={setSelectedRange}
+        />
               </div>
               <Toaster />
             </Router>

@@ -56,6 +56,13 @@ export const Navbar = ({
   const [selectedTokenType, setSelectedTokenType] = useState<'binance' | 'BTCC' | 'ai'>('binance');
   const [activeFilterStrategyId, setActiveFilterStrategyId] = useState<string | null>(null);
 
+  // Internal filter state to match with context
+  const [filterOptions, setFilterOptions] = useState({
+    skipTraps: filters.skipPotentialTraps || false,
+    avoidHype: filters.avoidOverhypedTokens || false,
+    minMarketCap: filters.marketCapFilter || false,
+  });
+
   const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
     { id: '1', name: 'Short-Term', type: 'short' },
     { id: '2', name: 'Long-Term', type: 'long' }
@@ -77,6 +84,15 @@ export const Navbar = ({
     { id: '2', name: 'BTCC', type: 'BTCC' },
     { id: '3', name: 'AI Agent', type: 'ai' }
   ];
+
+  // Sync internal filter state with context
+  useEffect(() => {
+    setFilterOptions({
+      skipTraps: filters.skipPotentialTraps || false,
+      avoidHype: filters.avoidOverhypedTokens || false, 
+      minMarketCap: filters.marketCapFilter || false
+    });
+  }, [filters]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -136,8 +152,12 @@ export const Navbar = ({
     }
   };
 
+  // Fixed handleFilterClick function
   const handleFilterClick = (strategyId: string, event: React.MouseEvent) => {
+    event.preventDefault();
     event.stopPropagation();
+    console.log('Filter clicked for strategy:', strategyId);
+    
     if (activeFilterStrategyId === strategyId) {
       setShowFilters(false);
       setActiveFilterStrategyId(null);
@@ -147,15 +167,29 @@ export const Navbar = ({
     }
   };
 
-  const handleFilterOptionClick = (filterKey: keyof Filters, value: boolean, event: React.ChangeEvent<HTMLInputElement>) => {
-    event.stopPropagation();
-    updateFilters({ [filterKey]: value });
+  // Update handleFilterOptionClick to properly set context filters
+  const handleFilterOptionClick = (filterKey: keyof typeof filterOptions, value: boolean) => {
+    const newFilterOptions = {
+      ...filterOptions,
+      [filterKey]: value
+    };
+    
+    setFilterOptions(newFilterOptions);
+    
+    // Map to context filter names
+    const contextFilters = {
+      skipPotentialTraps: newFilterOptions.skipTraps,
+      avoidOverhypedTokens: newFilterOptions.avoidHype,
+      marketCapFilter: newFilterOptions.minMarketCap
+    };
+    
+    updateFilters(contextFilters);
   };
 
   return (
     <div className="flex flex-col w-full bg-gray-900">
 
-      <div className="flex flex-col h-16 lg:flex-row items-center justify-between p-4 bg-gray-800/50"> {/* Changed p-4 to p-5 to match BuySignalsPanel */}
+      <div className="flex flex-col h-16 lg:flex-row items-center justify-between p-4 bg-gray-800/50">
         <div className="flex items-center gap-2 mb-4 lg:mb-0">
           <img
             src="/fav.png"
@@ -241,61 +275,55 @@ export const Navbar = ({
           <span className="text-white whitespace-nowrap">Strategies:</span>
           <div className="flex flex-wrap gap-2 relative">
             {selectedStrategies.map(strategy => (
-              <button
-                key={strategy.id}
-                onClick={() => {
-                  console.log('Strategy button clicked:', strategy);
-                  setActiveStrategyId(strategy.id);
-                  onStrategyChange?.(strategy);
-                }}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-colors
-                  ${strategy.id === activeStrategyId 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-              >
-                {strategy.name}
-                {strategy.type === 'short' && (
-                  <button
-                    className="filters-button ml-1"
-                    onClick={(e) => handleFilterClick(strategy.id, e)}
-                  >
-                    <SlidersHorizontal size={18} />
-                  </button>
-                )}
-              </button>
+              <div key={strategy.id} className="relative inline-flex items-center">
+                <button
+                  onClick={() => {
+                    setActiveStrategyId(strategy.id);
+                    onStrategyChange?.(strategy);
+                  }}
+                  className={`px-4 py-1.5 rounded-full transition-colors ${
+                    strategy.id === activeStrategyId
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {strategy.name}
+                  {strategy.type === 'short' && (
+                    <button
+                      className="filters-button ml-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (activeFilterStrategyId === strategy.id) {
+                          setShowFilters(false);
+                          setActiveFilterStrategyId(null);
+                        } else {
+                          setShowFilters(true);
+                          setActiveFilterStrategyId(strategy.id);
+                        }
+                      }}
+                    >
+                      <SlidersHorizontal size={18} />
+                    </button>
+                  )}
+                </button>
+              </div>
             ))}
 
-            {selectedStrategies.length < allStrategies.length && (
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowStrategySelector(!showStrategySelector);
-                  }}
-                  className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
-                >
-                  {showStrategySelector ? <X size={20} /> : <Plus size={20} />}
-                </button>
-
-                {showStrategySelector && (
-                  <div className="absolute left-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-[9999]">
-                    <div className="p-2">
-                      {allStrategies
-                        .filter(strategy => !selectedStrategies.some(s => s.id === strategy.id))
-                        .map(strategy => (
-                          <button
-                            key={strategy.id}
-                            onClick={(e) => toggleStrategy(e, strategy)}
-                            className="w-full text-left px-3 py-2 rounded transition-colors text-gray-300 hover:bg-gray-700"
-                          >
-                            {strategy.name}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Directly render RSI button if it is not already selected */}
+            {allStrategies
+              .filter(strategy => strategy.type === 'rsi' && !selectedStrategies.some(s => s.type === 'rsi'))
+              .map(rsiStrategy => (
+                <div key={rsiStrategy.id} className="relative inline-flex items-center">
+                  <button
+                    onClick={() =>
+                      setSelectedStrategies(prev => [...prev, rsiStrategy])
+                    }
+                    className="px-4 py-1.5 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  >
+                    {rsiStrategy.name}
+                  </button>
+                </div>
+              ))}
           </div>
         </div>
 
@@ -307,15 +335,16 @@ export const Navbar = ({
               <button
                 key={token.id}
                 onClick={() => {
-                  onTokenSourceChange?.(token.type);
+                  // Update the token selection by mapping 'ai' to "cookiefun"
                   setCurrentToken(token.type === 'ai' ? "cookiefun" : token.type.toLowerCase());
                   setSelectedTokenType(token.type);
+                  onTokenSourceChange?.(token.type);
                 }}
-                className={`px-4 py-1.5 rounded-full transition-colors
-                  ${selectedTokenType === token.type
+                className={`px-4 py-1.5 rounded-full transition-colors ${
+                  selectedTokenType === token.type
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
+                }`}
               >
                 {token.name}
               </button>
