@@ -207,7 +207,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       simulation.nodes().forEach(d => {
         if (d.y < threshold) {
           // Initialize vx if undefined
-          if (d.vx === undefined) d.vx = 0.2;
+          if (d.vx === undefined) d.vx = 0.4;
           // Increase horizontal velocity away from the center
           d.vx += ((d.x - centerX) * 0.12) * alpha;
         }
