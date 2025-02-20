@@ -200,11 +200,23 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       .alphaDecay(0.02)
       .velocityDecay(0.3);
 
+    // Add custom force to adjust top bubbles sideways
+    simulation.force("topAdjust", (alpha: number) => {
+      const threshold = height * 0.2;
+      const centerX = width / 2;
+      simulation.nodes().forEach(d => {
+        if (d.y < threshold) {
+          // Increase horizontal velocity away from the center
+          d.vx += ((d.x - centerX) * 0.05) * alpha;
+        }
+      });
+    });
+
     simulationRef.current = simulation;
 
-    // If on mobile, schedule simulation to stop after it settles (e.g. after 1 second)
+    // If on mobile, schedule simulation to stop after it settles (after 5 seconds)
     if (window.innerWidth < 768) {
-      setTimeout(() => simulation.stop(), 1000);
+      setTimeout(() => simulation.stop(), 5000);
     }
 
     // Create bubbles
