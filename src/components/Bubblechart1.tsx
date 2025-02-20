@@ -164,20 +164,20 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       .attr("class", "relative w-full h-full");
 
     // Calculate bubble size based on device width - adjusted for better visibility
-    const minBubbleSize = Math.max(width * 0.05, 20);
-    const maxBubbleSize = Math.max(width * 0.08, 30);
+    const minBubbleSize = Math.max(width * 0.05, 10);
+    const maxBubbleSize = Math.max(width * 0.08, 20);
 
     const initializedData = rangeFilteredData.map((d) => {
       // Calculate bubble size
       const bubbleRadius = Math.max(
         minBubbleSize,
-        Math.min(maxBubbleSize, (d.bubbleSize || 0.5) * 30)
+        Math.min(maxBubbleSize, (d.bubbleSize || 0.5) * 20)
       );
       
       return {
         ...d,
         // Remove randomness: start x at the center
-        x: width / 2,
+        x: width / 2.2,
         // Allow a small noise for y to avoid perfect overlap
         y: getYPosition(d.risk || 50, height) + (Math.random() - 0.5) * 10,
         radius: bubbleRadius
@@ -187,7 +187,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     // Create force simulation with looser constraints for free-floating effect
     const simulation = d3.forceSimulation<DataItem>(initializedData)
       // Force X: strong centering at mid-width
-      .force("x", d3.forceX<DataItem>(width / 2).strength(0.5))
+      .force("x", d3.forceX<DataItem>(width / 2).strength(0.3))
       // Force Y: maintain risk-based vertical positioning
       .force("y", d3.forceY<DataItem>(d => getYPosition(d.risk || 50, height)).strength(0.3))
       // Collision prevention
@@ -272,18 +272,12 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
   return (
     <>
       <div 
-        className="w-full h-[76vh] pt-[2vh] relative " // changed pt from 8vh to 4vh
+        className="w-full h-[76vh] pt-[2vh] relative " 
         style={{ paddingBottom: '10vh' }}
       >
         {/* Matching gradient background from main component */}
         <div className="absolute inset-0 bg-gradient-to-b from-red-900/20 via-yellow-700/10 to-green-900/20 z-0" />
-        
-        {/* Risk indicators - simple text without grid lines */}
-        <div className="absolute left-2 top-[12vh] bottom-[12vh] flex flex-col justify-between z-10">
-          <div className="text-red-400 text-xs font-medium">High Risk</div>
-          <div className="text-yellow-400 text-xs font-medium">Medium Risk</div>
-          <div className="text-green-400 text-xs font-medium">Low Risk</div>
-        </div>
+
         
         {/* Bubble container */}
         <div 
