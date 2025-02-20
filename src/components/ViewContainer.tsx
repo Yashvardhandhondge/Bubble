@@ -39,7 +39,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   const allTokens: Array<{ id: string, name: string, type: 'binance' | 'btcc' | 'ai' }> = [
     { id: '1', name: 'Binance', type: 'binance' },
     { id: '2', name: 'BTCC', type: 'btcc' },
-    { id: '3', name: 'AI Agent', type: 'ai' }
+    { id: '3', name: 'AI Agents', type: 'ai' }
   ];
 
   // Sync internal filter state with context

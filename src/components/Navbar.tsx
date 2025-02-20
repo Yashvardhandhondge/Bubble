@@ -82,7 +82,7 @@ export const Navbar = ({
   const allTokens: Token[] = [
     { id: '1', name: 'Binance', type: 'binance' },
     { id: '2', name: 'BTCC', type: 'BTCC' },
-    { id: '3', name: 'AI Agent', type: 'ai' }
+    { id: '3', name: 'AI Agents', type: 'ai' }
   ];
 
   // Sync internal filter state with context
