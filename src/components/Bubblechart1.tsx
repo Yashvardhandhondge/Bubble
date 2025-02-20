@@ -219,7 +219,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
 
     // If on mobile, schedule simulation to stop after it settles (after 5 seconds)
     if (window.innerWidth < 768) {
-      setTimeout(() => simulation.stop(), 7000);
+      setTimeout(() => simulation.stop(), 8000);
     }
 
     // Create bubbles
