@@ -150,7 +150,7 @@ export const BuySignalsPanel: React.FC = () => {
 
   \
       <div className=" px-0 sm:px-4 py-0 sm:py-2 ">
-        <h1 className=" flex items-center justify-center text-2xl p-4 sm:p-7 text-white font-semibold   w-full">Latest Buy Signals</h1>
+        <h1 className=" flex items-center  justify-center text-2xl p-1 sm:p-7 text-white font-semibold   w-full">Latest Buy Signals</h1>
       </div>
 
         {error && (

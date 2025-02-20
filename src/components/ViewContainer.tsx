@@ -21,7 +21,8 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   const { setCurrentToken, filters, updateFilters } = useData();
   const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
     { id: '1', name: 'Short-Term', type: 'short', isActive: true },
-    { id: '2', name: 'Long-Term', type: 'long', isActive: false }
+    { id: '2', name: 'Long-Term', type: 'long', isActive: false },
+    { id: '3', name: 'RSI', type: 'rsi', isActive: false }
   ]);
 
   const [selectedToken, setSelectedToken] = useState<'binance' | 'btcc' | 'ai'>('binance');
@@ -152,7 +153,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
       case 'settings':
         return (
           <div className="min-h-[80vh] flex flex-col">
-            <div className="pt-[8vh] px-4 pb-4">
+            <div className="pt-[9vh] px-4 pb-4">
               {/* Strategy controls */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {selectedStrategies.map(strategy => (
@@ -229,9 +230,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
                     )}
                   </div>
                 ))}
-                <button className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Plus size={20} className="text-white" />
-                </button>
               </div>
               {/* Use new settings token selector */}
               {/* {renderSettingsTokenSelector()} */}

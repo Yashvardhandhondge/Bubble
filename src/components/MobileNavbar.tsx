@@ -27,8 +27,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     "101 - 200",
     "201 - 300",
     "301 - 400",
-    "401 - 500",
-    "501 - 600"
   ];
 
   // Close dropdown when clicking outside
@@ -74,15 +72,14 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         </div>
       </div>
 
-      {/* Bottom fixed bar with left-aligned range filter (dropdown opens upward) and right navigation */}
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
-        {/* Left Side: Range Filter Dropdown */}
         <div className="relative" ref={dropdownRef}>
           {(currentView === 'chart' || currentView === 'settings') && (
             <>
               <button 
                 onClick={toggleRangeDropdown}
-                className="flex items-center gap-1 px-2 py-1 rounded bg-black text-white"
+                // Added h-10 for uniform height
+                className="flex border border-gray-400 bg-[#68686833]/20 items-center gap-1 px-2 py-1 h-10 rounded bg-black text-white"
               >
                 <span className="text-sm">{selectedRange}</span>
                 <ChevronDown size={16} className={showRangeDropdown ? "rotate-180" : ""} />
@@ -104,7 +101,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           )}
         </div>
 
-        {/* Right Side: Navigation Buttons */}
         <div className="flex border border-white rounded-lg overflow-hidden">
           <button 
             onClick={() => onViewChange('chart')}

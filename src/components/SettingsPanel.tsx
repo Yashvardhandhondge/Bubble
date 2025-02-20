@@ -10,8 +10,6 @@ const SettingsPanel: React.FC = () => {
     "101 - 200",
     "201 - 300",
     "301 - 400",
-    "401 - 500",
-    "501 - 600"
   ];
 
   // Sample list of agents; filter out the one we don't need.
@@ -41,12 +39,13 @@ const SettingsPanel: React.FC = () => {
       <div className="relative inline-block">
         <button
           onClick={() => setShowRangeDropdown(!showRangeDropdown)}
-          className="flex items-center gap-1 px-2 py-1 bg-black text-white rounded"
+          // Added h-10 class for a fixed height
+          className="flex items-center gap-1 px-2 py-1 h-10 bg-black text-white rounded"
         >
           <span>{selectedRange}</span>
         </button>
         {showRangeDropdown && (
-          <div ref={dropdownRef} className="absolute mt-1 w-32 bg-black border border-gray-700 rounded shadow-lg">
+          <div ref={dropdownRef} className="absolute mt-1 w-32 bg-black border border-white rounded shadow-lg">
             {rangeOptions.map((range, index) => (
               <div
                 key={index}
