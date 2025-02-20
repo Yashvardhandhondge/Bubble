@@ -78,8 +78,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             <>
               <button 
                 onClick={toggleRangeDropdown}
-                // Added h-10 for uniform height
-                className="flex border border-gray-400 bg-[#68686833]/20 items-center gap-1 px-2 py-1 h-10 rounded bg-black text-white"
+                className="flex border border-gray-400 bg-[#68686833]/20 items-center gap-1 px-2 py-1 rounded bg-black text-white"
               >
                 <span className="text-sm">{selectedRange}</span>
                 <ChevronDown size={16} className={showRangeDropdown ? "rotate-180" : ""} />
@@ -101,7 +100,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           )}
         </div>
 
-        <div className="flex mb-3 border border-white rounded-lg overflow-hidden">
+        <div className="flex border border-white rounded-lg overflow-hidden">
           <button 
             onClick={() => onViewChange('chart')}
             className={`flex items-center justify-center w-[60px] h-[50px] ${currentView === 'chart' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}

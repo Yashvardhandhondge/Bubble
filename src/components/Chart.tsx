@@ -60,6 +60,24 @@ export const Chart = ({ onClose, tokenAddress = '0x2260fac5e5542a773aa44fbcfedf7
     };
   }, [tokenAddress, chainId]);
 
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://token.moralis.io/static/embed/token.js";
+    script.async = true;
+    script.onerror = () => {
+      console.error("Failed to load token.js script. Using fallback.");
+      // Optionally load a local fallback, e.g.:
+      // const fallback = document.createElement("script");
+      // fallback.src = "/local/token.js";
+      // fallback.async = true;
+      // document.body.appendChild(fallback);
+    };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   return (
     <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999999999]'>
       <div 

@@ -101,13 +101,13 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     setShowModal(true);
   };
 
-  // Close modal handler
+
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedToken(null);
   };
 
-  // Create HTML for bubbles with enhanced styling
+
   const createBubbleHTML = (d: DataItem) => {
     const colors = calculateBubbleColor(d.risk || 50);
     const iconSize = Math.max(d.radius * 0.6, 12);
@@ -167,18 +167,19 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     const minBubbleSize = Math.max(width * 0.05, 10);
     const maxBubbleSize = Math.max(width * 0.08, 20);
 
+    // Determine scale factor for mobile screens
+    const scaleFactor = window.innerWidth < 768 ? 0.7 : 1;
+
+    // Mapping data to initialize bubbles with adjusted radius and center
     const initializedData = rangeFilteredData.map((d) => {
-      // Calculate bubble size
       const bubbleRadius = Math.max(
         minBubbleSize,
-        Math.min(maxBubbleSize, (d.bubbleSize || 0.5) * 20)
+        Math.min(maxBubbleSize, (d.bubbleSize || 0.5) * 20 * scaleFactor)
       );
       
       return {
         ...d,
-        // Remove randomness: start x at the center
-        x: width / 2.2,
-        // Allow a small noise for y to avoid perfect overlap
+        x: window.innerWidth < 768 ? width / 2 : width / 2.2, // center more precisely on mobile
         y: getYPosition(d.risk || 50, height) + (Math.random() - 0.5) * 10,
         radius: bubbleRadius
       };
