@@ -9,6 +9,10 @@ import {
 } from 'lucide-react';
 import { FaTelegram } from "react-icons/fa";
 import { useData } from '../context/DataContext';
+import WalletConnect from './WalletConnect';
+import { useAccount } from 'wagmi';
+import { ChangellyDEX } from './ChangellyDEX';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface Filters {
   skipTraps: boolean;
@@ -55,6 +59,8 @@ export const Navbar = ({
   const [activeStrategyId, setActiveStrategyId] = useState('1');
   const [selectedTokenType, setSelectedTokenType] = useState<'binance' | 'BTCC' | 'ai'>('binance');
   const [activeFilterStrategyId, setActiveFilterStrategyId] = useState<string | null>(null);
+  const { address } = useAccount();
+  const [showDEX, setShowDEX] = useState(false);
 
   // Internal filter state to match with context
   const [filterOptions, setFilterOptions] = useState({
@@ -264,6 +270,17 @@ export const Navbar = ({
         >
           {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
         </button>
+
+        {/* Add Wallet Connect button */}
+        <div className="flex items-center gap-4">
+          <WalletConnect />
+          <button
+            onClick={() => setShowDEX(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Open DEX
+          </button>
+        </div>
       </div>
 
    
@@ -427,6 +444,13 @@ export const Navbar = ({
           </div>
         )}
       </div>
+
+      {/* Use new ChangellyDEX component */}
+      {showDEX && (
+        <ErrorBoundary>
+          <ChangellyDEX onClose={() => setShowDEX(false)} />
+        </ErrorBoundary>
+      )}
     </div>
   );
 }
