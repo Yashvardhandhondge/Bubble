@@ -10,8 +10,8 @@ const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewpo
 const PADDING_TOP = 74;
 const PADDING_BOTTOM = 60;
 const EFFECTIVE_HEIGHT = CONTAINER_HEIGHT - (PADDING_TOP + PADDING_BOTTOM); // Reduced padding to extend chart
-const BUBBLE_MIN_SIZE = 13; // Increased from 15
-const BUBBLE_MAX_SIZE = 23; // Increased from 25
+const BUBBLE_MIN_SIZE = 15; // Increased from 15
+const BUBBLE_MAX_SIZE = 25; // Increased from 25
 const BUBBLE_PADDING = 2; 
 
 
@@ -93,9 +93,9 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     const clampedRisk = Math.max(10, Math.min(100, risk));
     // For example, 90-100 at top, 80-89 below, etc.
     if (clampedRisk >= 90) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.16;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.2;
     } else if (clampedRisk >= 80) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.23;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.3;
     } else if (clampedRisk >= 70) {
       return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
     } else if (clampedRisk >= 60) {
