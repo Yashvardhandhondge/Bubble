@@ -154,7 +154,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
         return (
           <div className="min-h-[80vh] flex flex-col">
             <div className="pt-[9vh] px-4 pb-4">
-              {/* Strategy controls */}
               <div className="flex flex-nowrap gap-2 mb-4 overflow-x-auto">
                 {selectedStrategies.map(strategy => (
                   <div key={strategy.id} className="relative filter-container">

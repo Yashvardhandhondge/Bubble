@@ -7,12 +7,12 @@ import {Wget} from './Wget';
 import Modal from './Modal';
 
 const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewport height
-const PADDING_TOP = 80;
+const PADDING_TOP = 74;
 const PADDING_BOTTOM = 60;
 const EFFECTIVE_HEIGHT = CONTAINER_HEIGHT - (PADDING_TOP + PADDING_BOTTOM); // Reduced padding to extend chart
-const BUBBLE_MIN_SIZE = 15; // Increased from 15
-const BUBBLE_MAX_SIZE = 25; // Increased from 25
-const BUBBLE_PADDING = 5; // Slightly increased padding
+const BUBBLE_MIN_SIZE = 13; // Increased from 15
+const BUBBLE_MAX_SIZE = 23; // Increased from 25
+const BUBBLE_PADDING = 2; 
 
 
 interface DataItem extends d3.SimulationNodeDatum {
@@ -87,13 +87,22 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     };
   };
 
-  // Updated getRiskBand function for more precise positioning
-  const getRiskBand = (risk: number) => {
-    // Normalize risk to the visible range (10-100)
-    const normalizedRisk = Math.max(10, Math.min(100, risk));
-    // Calculate position as percentage of effective height (inverted)
-    return PADDING_TOP + (EFFECTIVE_HEIGHT * (1 - (normalizedRisk - 10) / 90));
-  };
+  // Replace getRiskBand with a band-based approach
+  function getRiskBand(risk: number) {
+    // Ensure risk is between 10 and 100
+    const clampedRisk = Math.max(10, Math.min(100, risk));
+    // For example, 90-100 at top, 80-89 below, etc.
+    if (clampedRisk >= 90) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.16;
+    } else if (clampedRisk >= 80) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.23;
+    } else if (clampedRisk >= 70) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
+    } else if (clampedRisk >= 60) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.45;
+    }
+    return PADDING_TOP + EFFECTIVE_HEIGHT * 0.56;
+  }
 
   // Update createBubbleHTML to enhance text visibility
   const createBubbleHTML = (d: DataItem) => {
@@ -208,7 +217,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
         return containerWidth / 2 + (bandOffset - 0.5) * spread + containerWidth * 0.05;
       }).strength(0.1)) // Increased strength for tighter grouping
       .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50))
-        .strength(0.9)) // Increased strength for better alignment
+        .strength(1)) // Increased strength for better alignment
       .force("collide", d3.forceCollide<DataItem>()
         .radius(d => d.radius + BUBBLE_PADDING)
         .strength(1)) // Maximum strength for collision
