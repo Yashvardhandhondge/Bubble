@@ -93,11 +93,11 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     const clampedRisk = Math.max(10, Math.min(100, risk));
     // For example, 90-100 at top, 80-89 below, etc.
     if (clampedRisk >= 90) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.2;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.21;
     } else if (clampedRisk >= 80) {
       return PADDING_TOP + EFFECTIVE_HEIGHT * 0.3;
     } else if (clampedRisk >= 70) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.38;
     } else if (clampedRisk >= 60) {
       return PADDING_TOP + EFFECTIVE_HEIGHT * 0.45;
     }
