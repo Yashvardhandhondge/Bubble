@@ -7,11 +7,11 @@ import {Wget} from './Wget';
 import Modal from './Modal';
 
 const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewport height
-const PADDING_TOP = 74;
+const PADDING_TOP = 90;
 const PADDING_BOTTOM = 60;
 const EFFECTIVE_HEIGHT = CONTAINER_HEIGHT - (PADDING_TOP + PADDING_BOTTOM); // Reduced padding to extend chart
-const BUBBLE_MIN_SIZE = 15; // Increased from 15
-const BUBBLE_MAX_SIZE = 25; // Increased from 25
+const BUBBLE_MIN_SIZE = 21; // Increased from 15
+const BUBBLE_MAX_SIZE = 31; // Increased from 25
 const BUBBLE_PADDING = 2; 
 
 
@@ -95,13 +95,13 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     if (clampedRisk >= 90) {
       return PADDING_TOP + EFFECTIVE_HEIGHT * 0.21;
     } else if (clampedRisk >= 80) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.35;
     } else if (clampedRisk >= 70) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.44;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.49;
     } else if (clampedRisk >= 60) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.56;
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.59;
     }
-    return PADDING_TOP + EFFECTIVE_HEIGHT * 0.6;
+    return PADDING_TOP + EFFECTIVE_HEIGHT * 0.62;
   }
 
   // Update createBubbleHTML to enhance text visibility

@@ -26,6 +26,10 @@ interface MobileBubbleChartProps {
   selectedRange: string;
 }
 
+// Constants for risk band positioning
+const PADDING_TOP = 20;
+const PADDING_BOTTOM = 20;
+
 const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) => {
   const { filteredData, loading, error } = useData();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -39,7 +43,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     const updateDimensions = () => {
       const vh = window.innerHeight;
       const vw = window.innerWidth;
-      const availableHeight = vh * 0.85; 
+      const availableHeight = vh * 0.85;
       setContainerDimensions({
         width: vw,
         height: availableHeight
@@ -52,6 +56,23 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       return () => window.removeEventListener('resize', updateDimensions);
     }
   }, []);
+
+  // Function to determine risk band position
+  const getRiskBand = (risk: number, height: number) => {
+    const EFFECTIVE_HEIGHT = height - PADDING_TOP - PADDING_BOTTOM;
+    const clampedRisk = Math.max(10, Math.min(100, risk));
+    
+    if (clampedRisk >= 90) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.21;
+    } else if (clampedRisk >= 80) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
+    } else if (clampedRisk >= 70) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.44;
+    } else if (clampedRisk >= 60) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.56;
+    }
+    return PADDING_TOP + EFFECTIVE_HEIGHT * 0.6;
+  };
 
   // Filter data based on selected range
   const rangeFilteredData = useMemo<DataItem[]>(() => {
@@ -71,12 +92,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       .map(item => ({ ...item } as DataItem));
   }, [filteredData, selectedRange]);
 
-  // Calculate bubble color based on risk - using the enhanced color scheme from the main component
+  // Calculate bubble color based on risk
   const calculateBubbleColor = (risk: number) => {
     const clampedRisk = Math.max(10, Math.min(100, risk || 50));
-    const t = (clampedRisk - 10) / 90; // normalize risk between 0 and 1
+    const t = (clampedRisk - 10) / 90;
     
-    // Smoothly interpolate from green (low risk) to red (high risk)
     const borderColor = d3.interpolateRgb("rgba(30,255,30,0.9)", "rgba(255,0,0,0.95)")(t);
     const backgroundColor = d3.interpolateRgb("rgba(30,255,30,0.35)", "rgba(255,0,0,0.4)")(t);
     const gradientColor = d3.interpolateRgb("rgba(30,255,30,0.5)", "rgba(255,0,0,0.6)")(t);
@@ -88,25 +108,15 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     };
   };
 
-  // Position bubbles vertically by risk level
-  const getYPosition = (risk: number, height: number) => {
-    const normalizedRisk = Math.max(10, Math.min(100, risk || 50));
-    // Invert the position (high risk at top) and adjust to start from the top
-    return (height * 0.9) * (1 - (normalizedRisk - 10) / 90) + (height * 0.05);
-  };
-
-  // Handle bubble click
   const handleBubbleClick = (data: DataItem) => {
     setSelectedToken(data);
     setShowModal(true);
   };
 
-
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedToken(null);
   };
-
 
   const createBubbleHTML = (d: DataItem) => {
     const colors = calculateBubbleColor(d.risk || 50);
@@ -150,7 +160,6 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       return;
     }
 
-    // Stop any existing simulation
     if (simulationRef.current) {
       simulationRef.current.stop();
     }
@@ -163,14 +172,10 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       .append("div")
       .attr("class", "relative w-full h-full");
 
-    // Calculate bubble size based on device width - adjusted for better visibility
     const minBubbleSize = Math.max(width * 0.05, 10);
     const maxBubbleSize = Math.max(width * 0.08, 20);
-
-    // Determine scale factor for mobile screens
     const scaleFactor = window.innerWidth < 768 ? 0.7 : 1;
 
-    // Mapping data to initialize bubbles with adjusted radius and center
     const initializedData = rangeFilteredData.map((d) => {
       const bubbleRadius = Math.max(
         minBubbleSize,
@@ -179,50 +184,29 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       
       return {
         ...d,
-        x: window.innerWidth < 768 ? width / 2 : width / 2.2, // center more precisely on mobile
-        y: getYPosition(d.risk || 50, height) + (Math.random() - 0.5) * 10,
+        x: width / 2,
+        y: getRiskBand(d.risk || 50, height) + (Math.random() - 0.5) * 10,
         radius: bubbleRadius
       };
     });
 
-    // Create force simulation with looser constraints for free-floating effect
     const simulation = d3.forceSimulation<DataItem>(initializedData)
-      // Force X: strong centering at mid-width
       .force("x", d3.forceX<DataItem>(width / 2).strength(0.3))
-      // Force Y: maintain risk-based vertical positioning
-      .force("y", d3.forceY<DataItem>(d => getYPosition(d.risk || 50, height)).strength(0.3))
-      // Collision prevention
+      .force("y", d3.forceY<DataItem>(d => getRiskBand(d.risk || 50, height)).strength(0.4))
       .force("collide", d3.forceCollide<DataItem>()
         .radius(d => d.radius + 2)
         .strength(1))
-      // Charge for radial repulsion
       .force("charge", d3.forceManyBody<DataItem>()
         .strength(d => -Math.pow(d.radius, 2) * 0.3))
       .alphaDecay(0.02)
       .velocityDecay(0.3);
 
-    // Add custom force to adjust top bubbles sideways
-    simulation.force("topAdjust", (alpha: number) => {
-      const threshold = height * 0.1;
-      const centerX = width / 2;
-      simulation.nodes().forEach(d => {
-        if (d.y < threshold) {
-          // Initialize vx if undefined
-          if (d.vx === undefined) d.vx = 0.4;
-          // Increase horizontal velocity away from the center
-          d.vx += ((d.x - centerX) * 0.12) * alpha;
-        }
-      });
-    });
-
     simulationRef.current = simulation;
 
-    // If on mobile, schedule simulation to stop after it settles (after 5 seconds)
     if (window.innerWidth < 768) {
       setTimeout(() => simulation.stop(), 8000);
     }
 
-    // Create bubbles
     const bubbles = bubbleContainer
       .selectAll<HTMLDivElement, DataItem>(".bubble-container")
       .data(initializedData)
@@ -233,13 +217,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       .html(createBubbleHTML)
       .on("click", (event, d) => handleBubbleClick(d));
 
-    // Animate bubbles in
     bubbles.transition()
       .duration(600)
       .delay((d, i) => i * 8)
       .style("opacity", "1");
 
-    // Update positions on simulation tick
     simulation.on("tick", () => {
       bubbles
         .style("left", d => `${Math.max(d.radius, Math.min(width - d.radius, d.x))}px`)
@@ -251,7 +233,6 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
         .style("position", "absolute"); 
     });
 
-    // Clean up
     return () => {
       simulation.stop();
     };
@@ -292,21 +273,16 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
   return (
     <>
       <div 
-        className="w-full h-[76vh] pt-[2vh] relative " 
+        className="w-full h-[76vh] pt-[2vh] relative" 
         style={{ paddingBottom: '10vh' }}
       >
-        {/* Matching gradient background from main component */}
         <div className="absolute inset-0 bg-gradient-to-b from-red-900/20 via-yellow-700/10 to-green-900/20 z-0" />
-
-        
-        {/* Bubble container */}
         <div 
           ref={containerRef}
           className="relative w-full h-full z-20"
         />
       </div>
 
-      {/* Modal for token details */}
       {showModal && selectedToken && (
         <Modal isOpen={showModal} onClose={handleCloseModal}>
           <Wget onClose={handleCloseModal} />
