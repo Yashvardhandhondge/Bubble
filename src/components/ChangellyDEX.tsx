@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { useConfig } from 'wagmi';
 import { useChainId, useSwitchChain } from 'wagmi';
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { X, ChevronDown, ArrowDownUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ChangellyService } from '../services/changelly';
 import { ChangellyQuote, ChangellyToken } from '../types/changelly';
 
-// Supported blockchains from Changelly API
 const SUPPORTED_CHAINS = [
   { id: 1, name: 'Ethereum', shortname: 'ETH' },
   { id: 10, name: 'Optimistic Ethereum', shortname: 'Optimism' },
@@ -28,7 +26,6 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const config = useConfig();
   
   const [selectedChain, setSelectedChain] = useState(SUPPORTED_CHAINS[0]);
   const [tokens, setTokens] = useState<ChangellyToken[]>([]);
@@ -40,9 +37,30 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
   const [showChainSelector, setShowChainSelector] = useState(false);
   const [isSwapping, setIsSwapping] = useState(false);
 
-  // Debounced quote fetching
+  // Load tokens when chain changes
   useEffect(() => {
-    if (!fromToken || !toToken || !amount || parseFloat(amount) === 0) {
+    const loadTokens = async () => {
+      try {
+        setLoading(true);
+        const tokenList = await ChangellyService.getTokens(selectedChain.id);
+        setTokens(tokenList);
+        setFromToken(null);
+        setToToken(null);
+        setQuote(null);
+      } catch (error) {
+        console.error('Failed to load tokens:', error);
+        toast.error('Failed to load tokens');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTokens();
+  }, [selectedChain.id]);
+
+  // Fetch quote when inputs change
+  useEffect(() => {
+    if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0) {
       setQuote(null);
       return;
     }
@@ -50,16 +68,20 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
     const fetchQuote = async () => {
       try {
         setLoading(true);
+        const amountInDecimals = parseUnits(amount, fromToken.decimals).toString();
+        
         const quoteData = await ChangellyService.getQuote(
+          selectedChain.id,
           fromToken.address,
           toToken.address,
-          parseUnits(amount, fromToken.decimals).toString(),
-          selectedChain.id
+          amountInDecimals
         );
+        
         setQuote(quoteData);
       } catch (error) {
-        console.error('Quote error:', error);
+        console.error('Failed to get quote:', error);
         toast.error('Failed to get quote');
+        setQuote(null);
       } finally {
         setLoading(false);
       }
@@ -69,52 +91,46 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
     return () => clearTimeout(timer);
   }, [fromToken, toToken, amount, selectedChain.id]);
 
-  const handleNetworkSwitch = useCallback(async (targetChainId: number) => {
-    try {
-      await switchChain({ chainId: targetChainId });
-    } catch (error) {
-      console.error('Network switch error:', error);
-      toast.error('Failed to switch network');
-    }
-  }, [switchChain]);
-
   const handleSwap = async () => {
     if (!fromToken || !toToken || !amount || !address) {
-      toast.error('Please connect wallet and fill all fields');
+      toast.error('Please fill all fields and connect wallet');
       return;
     }
 
-    // Check if we're on the correct network
     if (chainId !== selectedChain.id) {
-      await handleNetworkSwitch(selectedChain.id);
-      return;
+      try {
+        await switchChain({ chainId: selectedChain.id });
+      } catch (error) {
+        toast.error('Failed to switch network');
+        return;
+      }
     }
 
     try {
       setIsSwapping(true);
+      const amountInDecimals = parseUnits(amount, fromToken.decimals).toString();
+      
       const transaction = await ChangellyService.getSwapTransaction(
+        selectedChain.id,
         fromToken.address,
         toToken.address,
-        parseUnits(amount, fromToken.decimals).toString(),
-        selectedChain.id,
+        amountInDecimals,
         address
       );
 
-      // Send transaction using wagmi
       const { hash } = await window.ethereum.request({
         method: 'eth_sendTransaction',
         params: [{
           from: address,
           to: transaction.to,
           data: transaction.calldata,
-          value: transaction.value || '0x0',
+          value: fromToken.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' ? amountInDecimals : '0x0',
           gasPrice: transaction.gas_price,
         }],
       });
 
-      toast.success('Transaction submitted!');
-      console.log('Transaction hash:', hash);
-
+      toast.success('Transaction submitted');
+      
       // Wait for confirmation
       const receipt = await window.ethereum.request({
         method: 'eth_getTransactionReceipt',
@@ -135,30 +151,19 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
     }
   };
 
-  useEffect(() => {
-    loadTokens();
-  }, [selectedChain]);
-
-  const loadTokens = async () => {
+  const formatQuoteOutput = useCallback((quote: ChangellyQuote | null) => {
+    if (!quote || !toToken) return '';
     try {
-      setLoading(true);
-      const tokenList = await ChangellyService.getTokens(selectedChain.id);
-      setTokens(tokenList);
-      // Reset selected tokens when chain changes
-      setFromToken(null);
-      setToToken(null);
-      setQuote(null);
+      return formatUnits(BigInt(quote.amount_out_total), toToken.decimals);
     } catch (error) {
-      toast.error('Failed to load tokens');
-      console.error(error);
-    } finally {
-      setLoading(false);
+      return quote.amount_out_total;
     }
-  };
+  }, [toToken]);
 
   return (
     <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${className}`}>
       <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold text-white">Changelly DEX</h3>
@@ -189,14 +194,12 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
               )}
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X size={24} />
           </button>
         </div>
 
+        {/* Swap Form */}
         <div className="space-y-4">
           {/* From Token */}
           <div className="space-y-2">
@@ -213,6 +216,14 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
                 </option>
               ))}
             </select>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full bg-gray-700 text-white p-2 rounded"
+              placeholder="Enter amount"
+              min="0"
+            />
           </div>
 
           {/* Swap Direction Button */}
@@ -246,39 +257,29 @@ export const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className =
             </select>
           </div>
 
-          {/* Amount Input */}
-          <div className="space-y-2">
-            <label className="text-white">Amount</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-gray-700 text-white p-2 rounded"
-              placeholder="Enter amount"
-            />
-          </div>
-
           {/* Quote Display */}
           {quote && (
             <div className="bg-gray-700 p-4 rounded-lg space-y-2">
-              <p className="text-white">Estimated Output: {quote.amount_out_total}</p>
+              <p className="text-white">
+                Estimated Output: {formatQuoteOutput(quote)} {toToken?.symbol}
+              </p>
               <p className="text-gray-400">Gas: {quote.estimate_gas_total}</p>
-              <p className="text-gray-400">Route: {quote.routes.protocol_name}</p>
+              {quote.routes && (
+                <p className="text-gray-400">Route: {quote.routes.protocol_name}</p>
+              )}
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={handleSwap}
-              disabled={loading || !quote || isSwapping}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
-            >
-              {isSwapping ? 'Preparing Swap...' : 'Swap'}
-            </button>
-          </div>
+          {/* Action Button */}
+          <button
+            onClick={handleSwap}
+            disabled={loading || !quote || isSwapping || !address}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 hover:bg-blue-700"
+          >
+            {!address ? 'Connect Wallet' : isSwapping ? 'Swapping...' : 'Swap'}
+          </button>
 
-          {/* Loading Indicator */}
+
           {loading && (
             <div className="flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
