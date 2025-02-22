@@ -5,6 +5,8 @@ export interface ChangellyToken {
   decimals: number;
   chainId: number;
   logoURI?: string;
+  balance?: string;
+  is_active: boolean;
 }
 
 export interface ChangellyQuote {
@@ -21,8 +23,8 @@ export interface ChangellyQuote {
     amount_in: string;
     amount_out: string;
   };
-  calldata: string;
-  to: string;
+  calldata?: string;
+  to?: string;
 }
 
 export interface SwapTransaction {
@@ -33,17 +35,24 @@ export interface SwapTransaction {
   value?: string;
 }
 
-export interface ChangellyError {
-  message: string;
-  code: number;
-}
-
 export interface TokenListResponse {
   tokens: ChangellyToken[];
+  total: number;
 }
 
 export interface GasPriceResponse {
   low: string;
   medium: string;
   high: string;
-} 
+}
+
+export interface TokenAllowance {
+  remaining: string;
+}
+
+export interface ApproveTransaction {
+  calldata: string;
+  estimate_gas: string;
+  gas_price: string;
+  to: string;
+}
