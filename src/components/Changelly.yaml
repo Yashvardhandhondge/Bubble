@@ -1,0 +1,693 @@
+openapi: 3.0.1
+info:
+  version: ''
+  title: Changelly DEX API
+  x-logo:
+    url: 'https://docs.changelly.com/dex/logo.svg'
+
+servers: [
+  {
+    url: "https://dex-api.changelly.com/",
+    description: "DEX API URL"
+  }
+]
+
+tags:
+  - name: DEX Aggregator API
+    description: |-  
+     Key features:
+      * 7 supported blockchains:
+        * Ethereum;
+        * Optimistic Ethereum;
+        * BNB Smart Chain;
+        * Polygon;
+        * Fantom;
+        * Avalanche;
+        * Arbitrum.
+      * Over 100 connected liquidity sources and 3600 tokens available for exchange.
+      * Full cycle of preparing a transaction for tokens exchange in the network.  
+
+      You can check an example of a <a href='https://changelly.com/decentralized-exchange'>DEX service</a> developed on the basis of the DEX API.
+  - name: Get Started
+    description: |-
+      1. URL for API – https://dex-api.changelly.com/.
+      1. Without an API access key, a number of requests per second is limited, suitable for testing and development.
+      1. To obtain the key, contact [pro@changelly.com](mailto:pro@changelly.com).
+      1. The given key should be added to the **header** of each request, parameter `{X-API-Key: <key>}`.
+  - name: Flow example
+    description: |-
+      1. API — provides a list of supported blockchains upon [v1/platforms](https://docs.changelly.com/dex/#/paths/~1v1~1platforms/get) request.
+      1. GUI — the user selects a network the exchange is made within. For example, Ethereum, `ChainID=1`.
+      1. API — provides a list of blockchain tokens upon request [/v2/tokens/list](https://docs.changelly.com/dex/#/paths/~1v2~1tokens~1list/post). In our example, `POST /v2/tokens/list`.
+      1. API (optional) – provides calculated gas price values in GWEI (nAVAX for Avalanche) upon [/v1/{chainID}/gasprices](https://docs.changelly.com/dex/#/paths/~1v1~1%7BchainID%7D~1gasprices/get) request. The gas price values are returned for fast, medium and low transaction time.
+      1. GUI — the user selects the exchange tokens and the sale amount. For example, 1000 USDT to WBTC.
+      1. GUI — the user sets the slippage tolerance value in percentage. The recommended value is 1%.
+      1. GUI (optional) — the user selects the gas price value from pt 4.
+      1. API — endpoint [/v1/{chainID}/price](https://docs.changelly.com/dex/#/paths/~1v1~1%7BchainID%7D~1price/get) provides the number of the tokens which the user will get for the purchase (0.05 WBTC).
+      1. GUI — the user connects the wallet.
+      1. API — endpoint [/v1/{chainID}/transaction/allowance](https://docs.changelly.com/dex/#/paths/~1v1~1%7BchainID%7D~1transaction~1allowance/get) returns the amount of tokens that the exchange smart contract has access to (not required for native coins).
+      1. GUI — if the value of the sale is greater than the value from pt 10, the user is prompted to provide access for the tokens exchange (otherwise the exchange transaction will not be processed).
+      1. API — endpoint [/v1/{chainID}/transaction/approve](https://docs.changelly.com/dex/#/paths/~1v1~1%7BchainID%7D~1transaction~1approve/get) returns the input parameters (`calldata`) for a transaction to provide access to tokens, and the address of the contract where the transaction should be sent to.
+      1. GUI — generates an unsigned transaction based on the data from pt 12 and sends it to the user's connected wallet.
+      1. WALLET — the user confirms the operation in the wallet, and the wallet then signs the transaction and sends it to the blockchain.
+      1. GUI — after successful confirmation of the transaction from pt 14, the user is offered a button to exchange the selected tokens.
+      1. API — endpoint [/v1/{chainID}/quote](https://docs.changelly.com/dex/#/paths/~1v1~1%7BchainID%7D~1quote/get) provides the number of the tokens purchased (0.05 WBTC) and transaction input parameters.
+      1. GUI — generates an unsigned transaction based on the data from pt 16 and sends it to the user's connected wallet.
+      1. WALLET — the user confirms the operation in the wallet, and the wallet then signs the transaction and sends it to the blockchain.
+paths:
+  /v1/platforms:
+    get:
+      summary: Blockchains
+      description: Provides a list of [supported blockchains](https://chainlist.org/).
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET
+            'https://dex-api.changelly.com/v1/platforms'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  platforms:
+                    type: array
+                    description: An array of supported networks.
+                    items:
+                      type: object
+                      properties:
+                        chainId:
+                          type: integer
+                          description: The blockchain network ID.
+                        shortname:
+                          type: string
+                          description: The short name of the blockchain network.
+                        name: 
+                          type: string
+                          description: The full name of the blockchain network.
+              example:
+                platforms: 
+                - chainId: 1
+                  name: Ethereum
+                  shortname: ""
+                - chainId: 10
+                  name: Optimistic Ethereum
+                  shortname: Optimism
+                - chainId: 56
+                  name: BNB Smart Chain
+                  shortame: BSC
+  /v2/tokens/list:
+    post:
+      description: "Returns list of tokens with filtration and pagination."
+      summary: Tokens
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+                - paging
+              type: object
+              properties:
+                filter:
+                  $ref: '#/components/schemas/filter'
+                paging:
+                  $ref: '#/components/schemas/paging' 
+        required: true
+        description: "Filter with pagination. \n\n **Note.** Only paging object is required."
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl -X 'POST' 
+            'https://dex-api.changelly.com/v2/tokens/list' 
+            -d '{
+              "filter": {
+                "addresses": [
+                  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                ],
+                "chain_ids": [
+                  1
+                ],
+                "is_active": true,
+                "names": [
+                  "Ethereum"
+                ],
+                "symbols": [
+                  "ETH"
+                ]
+              },
+              "paging": {
+                "page": 1,
+                "page_size": 100
+              }
+            }'   
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokens:
+                      $ref: '#/components/schemas/tokens'
+              example: 
+                tokens:
+                - chainId: 1         
+                  address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                  name: "Ethereum"
+                  symbol: "ETH"
+                  decimals: 18
+                  logoURI: "https://dex-api.changelly.com/1i/1/0x1b40183efb4dd766f11bda7a7c3ad8982e998421/48x48.png"
+                  is_active: true
+                  priority: 1
+  /v1/{chainID}/gasprices:
+    get:
+      description: Provides calculated gas price values in **GWEI** (**nAVAX** for Avalanche).
+      summary: Gas prices
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      - $ref: '#/components/parameters/chainId'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET
+            'https://dex-api.changelly.com/v1/1/gasprices'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  high:
+                    type: string
+                    description: The gas price at which the transaction is most likely to be accepted in the next block.
+                  medium: 
+                    type: string
+                    description: The gas price at which the transaction is most likely to be accepted in the next 2-3 blocks.
+                  low: 
+                    type: string
+                    description: The gas price at which the transaction is most likely to be accepted not earlier than after block 5. There is a risk of a long transaction confirmation.
+              example: 
+                low: "29.521"
+                medium: "31.521"
+                high: "33.521"
+  /v1/sources:
+    get:
+      description: "Provides a list of liquidity sources."
+      summary: Liquidity sources 
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET 
+            'https://dex-api.changelly.com/v1/sources'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources:
+                    $ref: '#/components/schemas/sources'
+  /v1/{chainID}/price:
+    get:
+      description: "Returns only the best exchange offer. \n\nDoesn't generate the input parameters for creating exchange transaction."
+      summary: Exchange offer
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      - $ref: '#/components/parameters/chainId'
+      - $ref: '#/components/parameters/fromTokenAddress'
+      - $ref: '#/components/parameters/toTokenAddress'
+      - $ref: '#/components/parameters/amount'
+      - $ref: '#/components/parameters/slippage'
+      - $ref: '#/components/parameters/gasPrice'
+      - $ref: '#/components/parameters/feeRecipient'
+      - $ref: '#/components/parameters/buyTokenPercentageFee'
+      - $ref: '#/components/parameters/sellTokenPercentageFee'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET 
+            'https://dex-api.changelly.com/v1/1/price?fromTokenAddress=0xdac17f958d2ee523a2206206994597c13d831ec7&toTokenAddress=0x6b175474e89094c44da98b954eedeac495271d0f&amount=1500000000&slippage=1&gasPrice=16000000000&feeRecipient=0xdac17f958d2ee523a2206206994597c13d831ec7&buyTokenPercentageFee=1&sellTokenPercentageFee=1'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount_out_total:
+                    $ref: '#/components/schemas/amount_out_total'
+                  estimate_gas_total:
+                    $ref: '#/components/schemas/estimate_gas_total'
+                  gas_price:
+                    $ref: '#/components/schemas/gas_price'
+                  fee_recipient_amount:
+                    $ref: '#/components/schemas/fee_recipient_amount'
+                  token_in:
+                    $ref: '#/components/schemas/token_in'
+                  token_out:
+                    $ref: '#/components/schemas/token_out'
+                  routes:
+                    $ref: '#/components/schemas/routes'
+              example: 
+                amount_out_total: "1520418496203262297769"
+                estimate_gas_total: "144085"
+                token_in: "0xdac17f958d2ee523a2206206994597c13d831ec7"
+                token_out: "0x6b175474e89094c44da98b954eedeac495271d0f"
+                gas_price: "16000000000"
+                fee_recipient_amount: "1518896558810500225"
+                routes:  
+                  protocol_name: "Uniswap_V3"
+                  percent: 100
+                  pools: null
+                  amount_in: ""
+                  amount_out: ""
+  /v1/{chainID}/transaction/allowance:
+    get:
+      description: Checks how many user’s tokens the exchange smart contract has access to.
+      summary: Transaction allowance
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      - $ref: '#/components/parameters/chainId'
+      - $ref: '#/components/parameters/tokenAddress'
+      - $ref: '#/components/parameters/walletAddress'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET 
+            'https://dex-api.changelly.com/v1/1/transaction/allowance?tokenAddress=0xdAC17F958D2ee523a2206206994597C13D831ec7&walletAddress=0x58f58219e2d2598588c1b457bb6da65c34d99310'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  remaining:
+                    type: string
+                    description: The number of tokens in decimals of the token the smart contract has access to.
+              example: 
+                remaining: "11579208923731620000"
+  /v1/{chainID}/transaction/approve:
+    get:
+      description: "Generates input parameters for the access transaction. This transaction provides access to the user's tokens for the exchange smart contract.\n\n
+        **Note.** The endpoint doesn't generate transaction."
+      summary: Transaction approve
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      - $ref: '#/components/parameters/chainId'
+      - $ref: '#/components/parameters/tokenAddress'
+      - $ref: '#/components/parameters/amount'
+      - $ref: '#/components/parameters/gasPrice'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET 
+            'https://dex-api.changelly.com/v1/1/transaction/approve?tokenAddress=0xdAC17F958D2ee523a2206206994597C13D831ec7&amount=100000000000&gasPrice=100000000000'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calldata:
+                    type: string
+                    description: One of the input parameters for processing a transaction providing access to tokens.
+                  estimate_gas:
+                    $ref: '#/components/schemas/estimate_gas'
+                  gas_price:
+                    $ref: '#/components/schemas/gas_price'
+                  to:
+                    $ref: '#/components/schemas/to'
+              example: 
+                calldata: "0x095ea7b30000000000000000000000001aaad07998466cd3eb8140827dddb37570be1e63000000000000000000000000000000000000000000000000000000174876e800"
+                estimate_gas: "48561"
+                gas_price: "100000000000"
+                to: "0xdac17f958d2ee523a2206206994597c13d831ec7"
+  /v1/{chainID}/quote:
+    get:
+      description: "Returns the best route and generates input parameters for exchange transaction.\n\n**Note.** The endpoint doesn't generate transaction."
+      summary: Data for creating transaction
+      parameters:
+      - $ref: '#/components/parameters/api-key'
+      - $ref: '#/components/parameters/chainId'
+      - $ref: '#/components/parameters/fromTokenAddress'
+      - $ref: '#/components/parameters/toTokenAddress'
+      - $ref: '#/components/parameters/amount'
+      - $ref: '#/components/parameters/slippage'
+      - $ref: '#/components/parameters/gasPrice'
+      - $ref: '#/components/parameters/feeRecipient'
+      - $ref: '#/components/parameters/buyTokenPercentageFee'
+      - $ref: '#/components/parameters/sellTokenPercentageFee'
+      - $ref: '#/components/parameters/recipientAddress'
+      - $ref: '#/components/parameters/takerAddress' 
+      - $ref: '#/components/parameters/skipValidation'
+      x-codeSamples:
+        - lang: cURL
+          source: |-
+            curl --location --request GET 
+            'https://dex-api.changelly.com/v1/1/quote?fromTokenAddress=0xdac17f958d2ee523a2206206994597c13d831ec7&toTokenAddress=0x6b175474e89094c44da98b954eedeac495271d0f&amount=1500000000&slippage=1&gasPrice=16000000000&feeRecipient=0xdac17f958d2ee523a2206206994597c13d831ec7&buyTokenPercentageFee=1&sellTokenPercentageFee=1&recipientAddress=0xFD5c1C3d086a9CC0f21beaB6ddE3900C9351FC59&takerAddress=0xF9C7aE9200CAc6597AE57b0C047205c28A7f53f7&skipValidation=true'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount_out_total:
+                    $ref: '#/components/schemas/amount_out_total'
+                  estimate_gas_total:
+                    $ref: '#/components/schemas/estimate_gas_total'
+                  gas_price:
+                    $ref: '#/components/schemas/gas_price'
+                  fee_recipient_amount:
+                    $ref: '#/components/schemas/fee_recipient_amount'
+                  token_in:
+                    $ref: '#/components/schemas/token_in'
+                  token_out:
+                    $ref: '#/components/schemas/token_out'
+                  routes:
+                    $ref: '#/components/schemas/routes'
+                  calldata:
+                    type: string
+                    description: One of the input parameters for processing a transaction for tokens exchange.
+                  to:
+                    $ref: '#/components/schemas/to'
+              example: 
+                amount_out_total: "1494075314383326809742"
+                estimate_gas_total: "401000"
+                token_in: "0xdac17f958d2ee523a2206206994597c13d831ec7"
+                token_out: "0x6b175474e89094c44da98b954eedeac495271d0f"
+                gas_price: "16000000000"
+                fee_recipient_amount: "1497002"
+                routes:  
+                  protocol_name: "xSigma"
+                  percent: 100
+                  pools: null
+                  amount_in: "1498500000"
+                  amount_out: "1517754723711759186599"
+                calldata: "0x351eb598000000000000000000000000fd5c1c3d086a9cc0f21beab6dde3900c9351fc.....00000eada1c640EF9200000"
+                to: "0x1AAAd07998466cD3Eb8140827DDdb37570BE1e63"
+
+                
+components:
+  parameters:
+    api-key:
+        name: X-Api-Key
+        in: header
+        description: Your API access key. Without an API access key, a number of requests per second is limited.
+        schema:
+          type: string
+    chainId:
+      name: chainId
+      in: path
+      required: true
+      description: "Blockchain ID. \n\nList: https://chainlist.org/"
+      schema:
+        type: integer
+        example: 1
+    fromTokenAddress:
+      name: fromTokenAddress
+      in: query
+      description: Smart contract address of the sale token.
+      required: true
+      schema:
+        type: string
+        example: '0xdac17f958d2ee523a2206206994597c13d831ec7'
+    toTokenAddress:
+      name: toTokenAddress
+      in: query
+      example: '0x6b175474e89094c44da98b954eedeac495271d0f'
+      description: Smart contract address of the purchase token.
+      required: true
+      schema:
+        type: string
+    amount:
+      name: amount
+      in: query
+      example: 1500000000
+      description: The amount of sale tokens in decimals of the token. Can be taken from the [/{chainID}/tokens](https://docs.changelly.com/dex/#/paths/~1%7BChainID%7D~1tokens/get) endpoint.
+      required: true
+      schema:
+        type: integer
+    slippage:
+      name: slippage
+      example: 1
+      description: "The amount of slippage allowed during the actual execution of the transaction (10 = 1% slippage). \n\n
+        If the price changes by more than this percentage, the transaction will be reverted."
+      in: query
+      required: true
+      schema:
+        type: number
+    gasPrice:
+      name: gasPrice
+      in: query
+      example: '16000000000'
+      description: "Gas price value for making a transaction in WEI (nAVAX for Avalanche). \n\n1 GWEI = 1000000000 WEI. \n\nDefault value is the value high from the [/{chainID}/gasprices](https://docs.changelly.com/dex/#/paths/~1%7BchainID%7D~1gasprices/get) endpoint."
+      required: false
+      schema:
+        type: string
+    feeRecipient:
+      name: feeRecipient
+      in: query
+      example: '0xdac17f958d2ee523a2206206994597c13d831ec7'
+      description: "Wallet address for receiving fees.\n\n
+        The commission is paid from the purchase or sale token. It depends on which of the fields is sent in the request: `buyTokenPercentageFee` or `sellTokenPercentageFee`."
+      required: false
+      schema:
+        type: string
+    buyTokenPercentageFee:
+      name: buyTokenPercentageFee
+      in: query
+      example: 1
+      description: "Percentage of commission from the amount of purchase tokens, is taken in favor of `feeRecipient`.\n\n
+        10 = 1%, maximum value is 500.\n\n
+        If you specify both fields (`buyTokenPercentageFee` and `sellTokenPercentageFee`) in the request, the commission will be taken from the amount of sale tokens."
+      required: false
+      schema:
+        type: integer
+    sellTokenPercentageFee:
+      name: sellTokenPercentageFee
+      in: query
+      example: 1
+      description: "Percentage of commission from the amount of sale tokens, is taken in favor of `feeRecipient`.\n\n
+        10 = 1%, maximum value is 500.\n\n
+        If you specify both fields (`buyTokenPercentageFee` and `sellTokenPercentageFee`) in the request, the commission will be taken from the amount of sale tokens."
+      required: false
+      schema:
+        type: integer
+    recipientAddress:
+      name: recipientAddress
+      in: query
+      example: "0xFD5c1C3d086a9CC0f21beaB6ddE3900C9351FC59"
+      description: "The address of the recipient of the tokens after the exchange.\n\n
+        If this field is not specified, then the recipient of the tokens will be the one who sends the transaction for the exchange."
+      required: false
+      schema:
+        type: string
+    tokenAddress:
+      name: tokenAddress
+      in: query
+      example: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+      description: Smart contract address of the token for which access is being checked.
+      required: true
+      schema:
+        type: string
+    walletAddress:
+      name: walletAddress
+      in: query
+      example: "0x58f58219e2d2598588c1b457bb6da65c34d99310"
+      description: Wallet of the user for which access is being checked.
+      required: true
+      schema:
+        type: string
+    takerAddress:
+      name: takerAddress
+      in: query
+      example: "0xF9C7aE9200CAc6597AE57b0C047205c28A7f53f7"
+      description: "The wallet address from which the transaction will be performed.</br>If this field is specified, then the local transaction (<i>dry-run</i>) will be performed. It will allow you to validate the transaction and more accurately estimate the amount of gas that will be used during the transaction.
+                    \n\n If the local transaction fails, the 500 error code and JSON will return as response."
+      required: false
+      schema:
+        type: string
+    skipValidation:
+      name: skipValidation
+      in: query
+      example: "true"
+      description: Validation flag. If value is **true** - validation will be skipped.
+      required: false
+      schema:
+        type: boolean
+  schemas:
+    amount_out_total:
+      type:	string	
+      description: The amount of purchase tokens in decimals of the token.
+    estimate_gas_total:
+      type:	string	
+      description: The estimated amount of gas that will be used during the transaction.
+    gas_price:
+      type:	string	
+      description: Gas price value for a transaction in WEI (nAVAX for Avalanche).
+    fee_recipient_amount:
+      type:	string
+      description: "The amount of purchase tokens in decimals of the token which will be taken in favor of `feeRecipient`. \n\n
+        The value will be 0 if `feeRecipient` and `buyTokenPercentageFee` parameters are not specified."
+    token_in:
+      type:	string	
+      description: Smart contract address of the sale token.
+    token_out:
+      type:	string
+      description: Smart contract address of the purchase token.
+    routes:
+      type:	array
+      description: An array of DEXs the transaction will be carried out through.
+      items:
+        type: object
+        properties:
+          protocol_name:
+            type:	string
+            description: DEX name the transaction will be carried out through.
+          percent:
+            type:	integer
+            description: The percent of amount that will be swapped on the current DEX.
+          pools:
+            description: Always equals `null`.
+          amount_in:
+            type:	string
+            description: Amount of token to exchange.
+          amount_out:
+            type:	string
+            description: Expected amount of token out.
+    estimate_gas:
+      type: string
+      description: The estimated amount of gas that will be used during the transaction.
+    to:
+      type: string
+      description: Address of the smart contract the transaction should be sent to.
+    names:
+      type: array
+      description: Array of blockchain names.
+      items:
+        type: string
+      example:
+        - Ethereum
+    symbols:
+      type: array
+      description: Array of currencies names.
+      items:
+        type: string
+      example:
+        - ETH
+    filter:
+      type: object
+      description: Object with information for filtration.
+      properties:
+        addresses: 
+          type: array
+          items:
+            type: string
+            example:
+              "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          description: Array of the token smart contract addresses.
+        chain_ids:
+          type: array
+          description: Array of blockchain IDs.
+          items:
+            type: number
+            example:
+              1
+        is_active:
+          type: boolean
+          description: "If **null** – get only active."
+        names: 
+          type: array
+          description: Array of blockchain names.
+          items:
+            type: string
+          example:
+            - Ethereum
+        symbols:
+          type: array
+          description: Array of currencies names.
+          items:
+            type: string
+          example:
+            - ETH
+    paging:
+      description: Object with information for pagination.
+      type: object
+      required: 
+        - page
+      properties:
+        page: 
+          type: number
+          example: 1
+          description: Page number. Can't be less than 1.
+        page_size:
+          type: number
+          example: 100
+          description: Page size. If zero – unlimited page size, max 100.
+    tokens:
+      type:	array	
+      description: An array of supported tokens. If no tokens are found, **null** will be returned.
+      items:
+        type: object
+        properties: 
+          chainId:
+            type:	integer	
+            description: The blockchain network ID.
+          name:
+            type:	string
+            description: The full name of the token.
+          address:
+            type:	string	
+            description: The token smart contract address.
+          decimals:
+            type:	integer
+            description: "The number of decimals used to get its user representation. \n\n
+              For example, if decimals equals 2, a balance of 505 tokens should be displayed to a user as `5,05` (505 / 10<sup>2</sup>)."
+          logo:
+            type: string
+            description: The link to the token logo.
+          symbol:
+            type:	string	
+            description: The abbreviated name of the token.
+          is_active:
+            type: boolean
+          priority:
+            type: integer
+            example: 1
+            description: Token number that determines its popularity within blockchain network.
+    sources:
+      type:	array
+      description: Liquidity sources data.
+      items:
+        type: object
+        properties:
+          name:
+            type:	string
+            description: Liquidity source name.
+            example: "Uniswap V2"
+          logo:
+            type:	string
+            description: Liquidity source logo.
+            example: "https://dex-api.changelly.com/static-files/liquidity-sources/0x/1/uniswap_v2.svg"
+
+          

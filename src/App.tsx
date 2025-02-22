@@ -1,12 +1,12 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
-import { WagmiConfig } from 'wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { wagmiConfig } from './config/payment';
 import { Toaster } from 'react-hot-toast';
 import PaymentVerification from './components/PaymentVerification';
-
-import { Navbar } from './components/Navbar';
+// import { wagmiConfig } from './config/payment';
+// import { WagmiConfig } from 'wagmi';
+import { config  } from './config/payment';
+import Navbar from './components/Navbar';
 import ChartAdapter from './components/ChartAdapter';
 import { BuySignalsPanel } from './components/BuySignalsPanel';
 import { Wget } from './components/Chart';
@@ -17,8 +17,13 @@ import SimplifiedLayout from './components/SimplifiedLayout';
 import { MobileNavbar } from './components/MobileNavbar';
 import { ViewContainer } from './components/ViewContainer';
 import { ViewType } from './types';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider } from 'wagmi';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 
-function App() {
+const queryClient = new QueryClient();
+
+function YourAppContent() {
   const [selectedRange, setSelectedRange] = useState("Top 100");
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -42,64 +47,67 @@ function App() {
   // Mobile View
   if (isMobile) {
     return (
-      <WagmiConfig config={wagmiConfig}>
-        <RainbowKitProvider modalSize="compact">
-          <DataProvider>
-            <Router>
-              <div className="h-screen bg-black md:bg-gray-900 relative">
-              <MobileNavbar 
-          onViewChange={setCurrentView} 
-          currentView={currentView}
-          selectedRange={selectedRange}
-          onRangeChange={setSelectedRange}
-        />
-
-<ViewContainer 
-          currentView={currentView} 
-          selectedRange={selectedRange}
-          setSelectedRange={setSelectedRange}
-        />
-              </div>
-              <Toaster />
-            </Router>
-          </DataProvider>
-        </RainbowKitProvider>
-      </WagmiConfig>
+      <DataProvider>
+        <Router>
+          <div className="h-screen bg-black md:bg-gray-900 relative">
+            <MobileNavbar 
+              onViewChange={setCurrentView} 
+              currentView={currentView}
+              selectedRange={selectedRange}
+              onRangeChange={setSelectedRange}
+            />
+            <ViewContainer 
+              currentView={currentView} 
+              selectedRange={selectedRange}
+              setSelectedRange={setSelectedRange}
+            />
+          </div>
+          <Toaster />
+        </Router>
+      </DataProvider>
     );
   }
 
   // Desktop View
   return (
-    <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider modalSize="compact">
-        <DataProvider>
-          <Router>
-            <Toaster />
-            <PaymentVerification />
-            <Routes>
-              <Route path="/" element={
-                <SimplifiedLayout rightPanel={<BuySignalsPanel />}>
-                  <div className="flex-1 flex flex-col">
-                    <Navbar onRangeChange={setSelectedRange} />
-                    <div className="flex-1 p-6">
-                      <div className="w-full h-full">
-                        <ChartAdapter 
-                          selectedRange={selectedRange}
-                          onBubbleClick={handleBubbleClick}
-                        />
-                        {selectedCrypto && (
-                          <Wget onClose={() => setSelectedCrypto(null)}/>
-                        )}
-                      </div>
-                    </div>
+    <DataProvider>
+      <Router>
+        <Toaster />
+        <PaymentVerification />
+        <Routes>
+          <Route path="/" element={
+            <SimplifiedLayout rightPanel={<BuySignalsPanel />}>
+              <div className="flex-1 flex flex-col">
+                <Navbar onRangeChange={setSelectedRange} />
+                <div className="flex-1 p-6">
+                  <div className="w-full h-full">
+                    <ChartAdapter 
+                      selectedRange={selectedRange}
+                      onBubbleClick={handleBubbleClick}
+                    />
+                    {selectedCrypto && (
+                      <Wget onClose={() => setSelectedCrypto(null)}/>
+                    )}
                   </div>
-                </SimplifiedLayout>
-              } />
-            </Routes>
-          </Router>
-        </DataProvider>
-      </RainbowKitProvider>
-    </WagmiConfig>
+                </div>
+              </div>
+            </SimplifiedLayout>
+          } />
+        </Routes>
+      </Router>
+    </DataProvider>
+  );
+}
+
+function App() {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider>
+          <YourAppContent />
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 
