@@ -6,8 +6,12 @@ import { ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-
-
+// import { GasService } from '../services/GasService';
+// import { ChangellyService } from '../services/Changelly2';
+import { GasSpeed } from '../types/changelly';
+import { ChangellyService } from '../services/ChangellyService';
+import { GasPrices } from '../types/changelly';
+import { GasService } from '../services/Gasprice';
 // New: declare global for window.ethereum to fix TS errors
 declare global {
 	interface Window {
@@ -36,9 +40,9 @@ interface ChangellyDEXProps {
 	className?: string;
 }
 
+const API_KEY = '57d18ecb-7f0e-456c-a085-2d43ec6e2b3f';
 const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const WRAPPED_TOKEN_MAPPING: Record<number, string> = {
-	1: "0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2",
 	56: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
 	137: "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",
 	10: "0x4200000000000000000000000000000000000006",
@@ -78,269 +82,362 @@ const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className = '' }) 
 	const [quote, setQuote] = useState<Quote | null>(null);
 	const [isSwapping, setIsSwapping] = useState(false);
 	const [showChainSelector, setShowChainSelector] = useState(false);
+	const [selectedGasPrice, setSelectedGasPrice] = useState<'low' | 'medium' | 'high'>('low');
+	const [selectedGasSpeed, setSelectedGasSpeed] = useState<GasSpeed>('low');
+	const [gasPrices, setGasPrices] = useState<GasPrices | null>(null);
+	const [estimatedCost, setEstimatedCost] = useState<number>(0);
 
-	// Load tokens on chain change using fetch
+	const loadTokens = async (chainId: number) => {
+		try {
+			const response = await fetch(`/api/${chainId}/tokens`, {
+				method: 'GET',
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				}
+			});
+		
+			if (!response.ok) {
+				throw new Error(`Failed to load tokens: ${response.status}`);
+			}
+		
+			const data = await response.json();
+			console.log('Tokens response:', data);
+			return Array.isArray(data) ? data : data.tokens || [];
+		} catch (error) {
+			console.error('Token loading error:', error);
+			throw error;
+		}
+	};
+	
+	// Update useEffect for token loading
 	useEffect(() => {
-		const loadTokens = async () => {
+		const fetchTokens = async () => {
 			try {
 				setLoading(true);
-				const response = await fetch(`/api/v1/${selectedChain.id}/tokens`);
-				if (!response.ok) throw new Error(`API error: ${response.status}`);
-				const jsonData = await response.json();
-				let tokenList: Token[] = [];
-				if (Array.isArray(jsonData)) {
-					tokenList = jsonData;
-				} else if (jsonData && Array.isArray(jsonData.tokens)) {
-					tokenList = jsonData.tokens;
-				} else {
-					console.error("Expected an array but got:", jsonData);
-				}
+				const tokenList = await loadTokens(selectedChain.id);
 				setTokens(tokenList);
 				if (tokenList.length > 0) {
-					setFromToken(tokenList[0]);
+					const nativeToken: Token | undefined = tokenList.find((t: Token): boolean => t.address.toLowerCase() === NATIVE_TOKEN.toLowerCase());
+					setFromToken(nativeToken || tokenList[0]);
 					setToToken(tokenList[0]);
 				}
-				setQuote(null);
 			} catch (error: any) {
 				console.error('Failed to load tokens:', error);
 				toast.error('Failed to load tokens');
 			} finally {
 				setLoading(false);
 			}
-		};
-		loadTokens();
-	}, [selectedChain.id]);
+			};
+		
+			fetchTokens();
+		}, [selectedChain.id]);
+	
 
 	// Fetch quote with proper parameter formatting and error handling
 	// Updated fetch quote function
-const fetchQuote = useCallback(async () => {
-	if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0 || !address) {
-	  setQuote(null);
-	  return;
-	}
-  
-	try {
-	  setLoading(true);
-	  const amountInDecimals = parseUnits(amount, fromToken.decimals).toString();
-  
-	  // Log the request parameters for debugging
-	  console.log('Quote Request Parameters:', {
-		chainId: selectedChain.id,
-		fromToken: fromToken.address,
-		toToken: toToken.address,
-		amount: amountInDecimals,
-		decimals: fromToken.decimals,
-		address: address
-	  });
-  
-	  const params = new URLSearchParams({
-		fromTokenAddress: fromToken.address,
-		toTokenAddress: toToken.address,
-		amount: amountInDecimals,
-		slippage: '10',
-		gasPrice: '16000000000',
-		feeRecipient: address,
-		buyTokenPercentageFee: '1',
-		sellTokenPercentageFee: '1',
-		recipientAddress: address,
-		takerAddress: address,
-		skipValidation: 'true'
-	  });
-  
-	  // Make sure to include proper headers
-	  const response = await fetch(`/api/v1/${selectedChain.id}/quote?${params.toString()}`, {
-		method: 'GET',
-		headers: {
-		  'X-Api-Key': '57d18ecb-7f0e-456c-a085-2d43ec6e2b3f',
-		  'Accept': 'application/json',
-		  'Content-Type': 'application/json'
+	const fetchQuote = useCallback(async () => {
+		if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0 || !address) {
+			setQuote(null);
+			return;
 		}
-	  });
-  
-	  // Log the raw response
-	  console.log('Response status:', response.status);
-	  console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-  
-	  if (!response.ok) {
-		const errorText = await response.text();
-		console.error('Error response:', errorText);
-		throw new Error(`API error: ${response.status} - ${errorText}`);
-	  }
-  
-	  // Read the response text and log it
-	  const responseText = await response.text();
-	  console.log('Raw response text:', responseText);
-  
-	  if (!responseText || responseText.trim() === '') {
-		throw new Error('Empty response received');
-	  }
-  
-	  // Parse the response
-	  let data: Quote;
-	  try {
-		data = JSON.parse(responseText);
-		console.log('Parsed quote data:', data);
-	  } catch (parseError) {
-		console.error('JSON parse error:', parseError);
-		throw new Error('Failed to parse quote response');
-	  }
-  
-	  // Validate the quote data
-	  if (!data.amount_out_total) {
-		throw new Error('Invalid quote response - missing amount_out_total');
-	  }
-  
-	  setQuote(data);
-	} catch (error: any) {
-	  console.error('Quote error:', error);
-	  toast.error(`Failed to get quote: ${error.message}`);
-	  setQuote(null);
-	} finally {
-	  setLoading(false);
-	}
-  }, [fromToken, toToken, amount, selectedChain.id, address]);
-  
-  // Add this effect to manage the quote fetching with proper debouncing
-  useEffect(() => {
-	let timeoutId: NodeJS.Timeout | undefined;
-  
-	if (fromToken && toToken && amount && parseFloat(amount) > 0 && address) {
-	  // Clear any existing timeout
-	  if (timeoutId) {
-		clearTimeout(timeoutId);
-	  }
-  
-	  // Set a new timeout
-	  timeoutId = setTimeout(() => {
-		fetchQuote();
-	  }, 500);
-	} else {
-	  setQuote(null);
-	}
-  
+	
+		try {
+			setLoading(true);
+			const amountInDecimals = parseUnits(amount, fromToken.decimals).toString();
+			
+			const quote = await ChangellyService.getQuote(
+				selectedChain.id,
+				fromToken,
+				toToken,
+				amountInDecimals,
+				address,
+				selectedGasSpeed
+			);
+	
+			setQuote(quote);
 
-	return () => {
-	  if (timeoutId) {
-		clearTimeout(timeoutId);
-	  }
+			// Calculate estimated gas cost
+			if (quote.estimate_gas_total && gasPrices?.[selectedGasSpeed]) {
+				const estimatedCost = GasService.getEstimatedCost(
+					quote.estimate_gas_total,
+					gasPrices[selectedGasSpeed],
+					1 // TODO: Add native token price here
+				);
+				setEstimatedCost(estimatedCost);
+			}
+		} catch (error: any) {
+			console.error('Quote error:', error);
+			toast.error(`Failed to get quote: ${error.message}`);
+			setQuote(null);
+			setEstimatedCost(0);
+		} finally {
+			setLoading(false);
+		}
+	}, [fromToken, toToken, amount, selectedChain.id, address, selectedGasSpeed, gasPrices]);
+	
+	// Add this effect to manage the quote fetching with proper debouncing
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout | undefined;
+	
+		if (fromToken && toToken && amount && parseFloat(amount) > 0 && address) {
+			// Clear any existing timeout
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+			}
+	
+			// Set a new timeout
+			timeoutId = setTimeout(() => {
+				fetchQuote();
+			}, 500);
+		} else {
+			setQuote(null);
+		}
+	
+		return () => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+			}
+		};
+	}, [fetchQuote, fromToken, toToken, amount, address]);
+
+	const checkAllowance = async (tokenAddress: string, walletAddress: string, chainId: number): Promise<boolean> => {
+		try {
+			const params = new URLSearchParams({
+				tokenAddress,
+				walletAddress
+			});
+		
+			const response = await fetch(
+				 `/api/${chainId}/transaction/allowance?${params}`,
+				{
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					}
+				}
+			);
+		
+			if (!response.ok) {
+				throw new Error('Failed to check allowance');
+			}
+		
+			const data = await response.json();
+			console.log('Allowance response:', data);
+			return BigInt(data.remaining || '0') > 0n;
+		} catch (error) {
+			console.error('Allowance check error:', error);
+			return false;
+		}
 	};
-  }, [fetchQuote, fromToken, toToken, amount, address]);
+	
+	const getApprovalTransaction = async (tokenAddress: string, amount: string, chainId: number): Promise<any> => {
+		try {
+			const params = new URLSearchParams({
+				tokenAddress,
+				amount,
+				gasPrice: '16000000000'
+			});
+		
+			const response = await fetch(
+				 `/api/${chainId}/transaction/approve?${params}`,
+				{
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					}
+				}
+			);
+		
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`Approval error: ${errorText}`);
+			}
+		
+			const data = await response.json();
+			console.log('Approval transaction:', data);
+			return data;
+		} catch (error) {
+			console.error('Get approval transaction error:', error);
+			throw error;
+		}
+	};
+	
+	// Updated fetchGasPrices function:
+	const fetchGasPrices = async (chainId: number): Promise<Record<'low' | 'medium' | 'high', string>> => {
+		try {
+			// Call the external API directly.
+			const response = await fetch(`https://dex-api.changelly.com/v1/${chainId}/gasprices`, {
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				}
+			});
+			if (!response.ok) {
+				throw new Error('Failed to fetch gas prices');
+			}
+			const data = await response.json();
+			// Convert gas price from GWEI to WEI (1 GWEI = 1e9 WEI)
+			return {
+				low: Math.floor(parseFloat(data.low) * 1e9).toString(),
+				medium: Math.floor(parseFloat(data.medium) * 1e9).toString(),
+				high: Math.floor(parseFloat(data.high) * 1e9).toString(),
+			};
+		} catch (error) {
+			console.error('Failed to fetch gas prices:', error);
+			toast.error('Failed to fetch gas prices');
+			// Fallback value (e.g., 2 GWEI)
+			return { low: '2000000000', medium: '2000000000', high: '2000000000' };
+		}
+	};
 
 	useEffect(() => {
-		const timer = setTimeout(fetchQuote, 500);
-		return () => clearTimeout(timer);
-	}, [fetchQuote]);
+		const fetchGasPrices = async () => {
+			try {
+				const prices = await GasService.getGasPrices(selectedChain.id);
+				setGasPrices(prices);
+				
+				// Auto-select recommended speed
+				const recommendedSpeed = await GasService.getRecommendedSpeed(selectedChain.id);
+				setSelectedGasSpeed(recommendedSpeed);
+			} catch (error) {
+				console.error('Failed to fetch gas prices:', error);
+				toast.error('Failed to fetch gas prices');
+			}
+		};
+	
+		fetchGasPrices();
+	}, [selectedChain.id]);
 
+	// Update handleSwap function
 	const handleSwap = async () => {
 		if (!fromToken || !toToken || !amount || !address) {
 			toast.error('Please fill all fields and connect wallet');
 			return;
-		}
-		try {
+			}
+		
+			try {
 			setIsSwapping(true);
+			
+			// Switch chain if needed
 			if (chainId !== selectedChain.id) {
 				await switchChain({ chainId: selectedChain.id });
+				await new Promise(resolve => setTimeout(resolve, 1000));
 			}
+		
 			const amountInDecimals = parseUnits(amount, fromToken.decimals).toString();
-			const mappedFrom = mapTokenAddress(fromToken.address, selectedChain.id);
-
-			if (mappedFrom.toLowerCase() !== NATIVE_TOKEN.toLowerCase()) {
-				const hasAllowance = await checkAllowance(mappedFrom, amountInDecimals);
+			const mappedFromToken = mapTokenAddress(fromToken.address, selectedChain.id);
+		
+			// Check allowance for non-native tokens
+			if (mappedFromToken.toLowerCase() !== NATIVE_TOKEN.toLowerCase()) {
+				const hasAllowance = await checkAllowance(
+				mappedFromToken,
+				address,
+				selectedChain.id
+				);
+		
 				if (!hasAllowance) {
-					toast('Approval needed. Please approve the transaction...', {
-						icon: 'ℹ️'
+				const approvalTx = await getApprovalTransaction(
+					mappedFromToken,
+					amountInDecimals,
+					selectedChain.id
+				);
+		
+				console.log('Approval transaction data:', approvalTx);
+		
+				const approvalHash = await window.ethereum.request({
+					method: 'eth_sendTransaction',
+					params: [{
+					from: address,
+					to: approvalTx.to,
+					data: approvalTx.calldata,
+					gasPrice: approvalTx.gas_price,
+					}]
+				});
+		
+				toast.success('Approval transaction submitted');
+		
+				// Wait for approval confirmation
+				let receipt = null;
+				while (!receipt) {
+					await new Promise(resolve => setTimeout(resolve, 2000));
+					receipt = await window.ethereum.request({
+					method: 'eth_getTransactionReceipt',
+					params: [approvalHash]
 					});
-					const approvalTx = await getApprovalTransaction(mappedFrom, amountInDecimals);
-					const approvalHash = await window.ethereum.request({
-						method: 'eth_sendTransaction',
-						params: [{
-							from: address,
-							to: approvalTx.to,
-							data: approvalTx.calldata,
-							gasPrice: approvalTx.gas_price,
-						}],
-					});
-					toast.success('Approval transaction submitted');
-					// Monitor approval until confirmed
-					let approvalConfirmed = false, attempts = 0;
-					while (!approvalConfirmed && attempts < 20) {
-						const receipt = await window.ethereum.request({
-							method: 'eth_getTransactionReceipt',
-							params: [approvalHash],
-						});
-						if (receipt && (receipt.status === '0x1' || receipt.status === 1)) {
-							approvalConfirmed = true;
-							toast.success('Approval confirmed');
-						} else {
-							await new Promise(res => setTimeout(res, 2000));
-							attempts++;
-						}
-					}
-					if (!approvalConfirmed) {
-						throw new Error('Approval transaction failed or timed out');
-					}
+				}
+		
+				if (receipt.status !== '0x1') {
+					throw new Error('Approval failed');
+				}
+				
+				toast.success('Approval confirmed');
 				}
 			}
-
-			// Build swap quote parameters
+		
+			// Get swap quote
 			const params = new URLSearchParams({
-				fromTokenAddress: mappedFrom,
+				fromTokenAddress: mappedFromToken,
 				toTokenAddress: mapTokenAddress(toToken.address, selectedChain.id),
 				amount: amountInDecimals,
-				slippage: '10',
-				gasPrice: '16000000000',
+				slippage: '1',
+				gasPrice: '100000',
 				feeRecipient: address,
-				buyTokenPercentageFee: '1',
-				sellTokenPercentageFee: '1',
-				recipientAddress: address,
-				takerAddress: address,
-				skipValidation: 'true'
-				});
-				const response = await fetch(`/api/v1/${selectedChain.id}/quote?${params.toString()}`, {
-				headers: { 'X-Api-Key': '57d18ecb-7f0e-456c-a085-2d43ec6e2b3f' }
-				});
-				if (!response.ok) {
+				buyTokenPercentageFee: '1'
+			});
+		
+			const response = await fetch(
+				`https://dex-api.changelly.com/v1/${selectedChain.id}/quote?${params}`,
+				{ headers: { 'X-Api-Key': API_KEY } }
+			);
+		
+			if (!response.ok) {
 				throw new Error('Failed to get swap quote');
-				}
-				const transaction = await response.json();
-				if (!transaction.calldata || !transaction.to) {
-				throw new Error('Invalid swap transaction response');
-				}
-				const swapTx = {
+			}
+		
+			const quote = await response.json();
+			console.log('Swap quote:', quote);
+		
+			// Execute swap
+			const swapTx = {
 				from: address,
-				to: transaction.to,
-				data: transaction.calldata,
+				to: quote.to,
+				data: quote.calldata,
 				value: fromToken.address.toLowerCase() === NATIVE_TOKEN.toLowerCase() ? amountInDecimals : '0x0',
-				gasPrice: transaction.gas_price,
-				};
-				const swapHash = await window.ethereum.request({
+				gasPrice: quote.gas_price
+			};
+		
+			const swapHash = await window.ethereum.request({
 				method: 'eth_sendTransaction',
-				params: [swapTx],
-				});
-				toast.success('Swap transaction submitted');
-				// Monitor swap transaction
-				let receipt = null, attempts = 0;
-				while (!receipt && attempts < 30) {
-				await new Promise(res => setTimeout(res, 2000));
+				params: [swapTx]
+			});
+		
+			toast.success('Swap transaction submitted');
+		
+			// Monitor swap transaction
+			let receipt = null;
+			while (!receipt) {
+				await new Promise(resolve => setTimeout(resolve, 2000));
 				receipt = await window.ethereum.request({
-					method: 'eth_getTransactionReceipt',
-					params: [swapHash],
+				method: 'eth_getTransactionReceipt',
+				params: [swapHash]
 				});
-				attempts++;
-				}
-				if (receipt && (receipt.status === '0x1' || receipt.status === 1)) {
+			}
+		
+			if (receipt.status === '0x1') {
 				toast.success('Swap completed successfully!');
 				onClose();
-				} else {
-				toast.error('Swap failed or timed out');
-				}
-				} catch (error: any) {
-				console.error('Swap error:', error);
-				toast.error(`Swap failed: ${error.message}`);
-				} finally {
-				setIsSwapping(false);
-				}
-				};
+			} else {
+				throw new Error('Swap failed');
+			}
+		
+		} catch (error: any) {
+			console.error('Swap error:', error);
+			toast.error(`Swap failed: ${error.message}`);
+		} finally {
+			setIsSwapping(false);
+		}
+	};
 
 	const formatQuoteOutput = useCallback((q: Quote) => {
 		if (!q || !toToken) return '';
@@ -353,6 +450,67 @@ const fetchQuote = useCallback(async () => {
 	}, [toToken]);
 
 	const convertibleTokens = tokens.filter(token => token.is_active);
+
+	// Add gas speed selector UI
+	const renderGasSpeedSelector = () => (
+		<div className="space-y-2">
+			<label className="block text-sm font-medium">Gas Price</label>
+			<div className="grid grid-cols-3 gap-2">
+				{(['low', 'medium', 'high'] as const).map((speed) => (
+					<button
+						key={speed}
+						onClick={() => setSelectedGasSpeed(speed)}
+						className={`p-2 rounded ${
+							selectedGasSpeed === speed ? 'bg-blue-600' : 'bg-gray-700'
+						}`}
+					>
+						<div className="text-sm font-medium">
+							{speed.charAt(0).toUpperCase() + speed.slice(1)}
+						</div>
+						{gasPrices && (
+							<div className="text-xs">
+								{GasService.formatGasPrice(gasPrices[speed])}
+							</div>
+						)}
+					</button>
+				))}
+			</div>
+			{quote && (
+				<div className="text-sm text-gray-400 mt-1">
+					Estimated gas: {quote.estimate_gas_total} @ {
+						gasPrices?.[selectedGasSpeed] || '0'
+					} GWEI
+				</div>
+			)}
+		</div>
+	);
+
+	// Replace renderGasInfo with this simpler version that uses the quote directly
+	const renderGasInfo = () => {
+		if (!quote || !gasPrices || !fromToken) return null;
+	
+		const gasLimit = quote.estimate_gas_total;
+		const gasPrice = gasPrices[selectedGasSpeed];
+		const isNativeToken = fromToken.address.toLowerCase() === NATIVE_TOKEN.toLowerCase();
+	
+		const { gasCostNative, totalCostNative } = GasService.calculateTransactionCost(
+			gasLimit,
+			gasPrice,
+			amount,
+			isNativeToken
+		);
+	
+		return (
+		  <div className="text-sm text-gray-400 mt-1">
+			<p>Gas Limit: {parseInt(gasLimit).toLocaleString()} units</p>
+			<p>Gas Price: {parseFloat(gasPrice).toFixed(2)} GWEI</p>
+			<p>Network Fee: {gasCostNative.toFixed(6)} {selectedChain.shortname}</p>
+			{isNativeToken && (
+			  <p>Total Cost: {totalCostNative.toFixed(6)} {selectedChain.shortname}</p>
+			)}
+		  </div>
+		);
+	  };
 
 	return (
 		<Card className={`w-full max-w-4xl bg-gray-800 text-white ${className}`}>
@@ -433,13 +591,16 @@ const fetchQuote = useCallback(async () => {
 						</div>
 					</div>
 
+					{/* Add gas speed selector */}
+					{renderGasSpeedSelector()}
+
 					{/* Quote & Info Display */}
 					{quote && (
 						<div className="bg-gray-700 p-4 rounded-lg">
 							<p className="text-lg">
 								You will receive: {formatQuoteOutput(quote)} {toToken?.symbol}
 							</p>
-							<p className="text-gray-400">Gas estimate: {quote.estimate_gas_total}</p>
+							{renderGasInfo()}
 						</div>
 					)}
 					{!address ? (
@@ -460,65 +621,4 @@ const fetchQuote = useCallback(async () => {
 };
 
 export default ChangellyDEX;
-async function getApprovalTransaction(tokenAddress: string, amountInDecimals: string) {
-	try {
-		const params = new URLSearchParams({
-			tokenAddress: tokenAddress,
-			amount: amountInDecimals,
-		});
-
-		const response = await fetch(`/api/v1/approval?${params.toString()}`, {
-			headers: {
-				'X-Api-Key': '57d18ecb-7f0e-456c-a085-2d43ec6e2b3f',
-				'Accept': 'application/json'
-			}
-		});
-
-		if (!response.ok) {
-			throw new Error('Failed to get approval transaction');
-		}
-
-		const data = await response.json();
-		
-		if (!data.to || !data.calldata || !data.gas_price) {
-			throw new Error('Invalid approval transaction response');
-		}
-
-		return {
-			to: data.to,
-			calldata: data.calldata,
-			gas_price: data.gas_price
-		};
-	} catch (error) {
-		console.error('Approval transaction error:', error);
-		throw error;
-	}
-}
-
-async function checkAllowance(tokenAddress: string, amountInDecimals: string): Promise<boolean> {
-	try {
-		const params = new URLSearchParams({
-			tokenAddress: tokenAddress,
-			amount: amountInDecimals,
-		});
-
-		const response = await fetch(`/api/v1/allowance?${params.toString()}`, {
-			headers: {
-				'X-Api-Key': '57d18ecb-7f0e-456c-a085-2d43ec6e2b3f',
-				'Accept': 'application/json'
-			}
-		});
-
-		if (!response.ok) {
-			throw new Error('Failed to check allowance');
-		}
-
-		const data = await response.json();
-		return data.hasAllowance || false;
-
-	} catch (error) {
-		console.error('Allowance check error:', error);
-		return false;
-	}
-}
 
