@@ -16,24 +16,38 @@ const WRAPPED_TOKEN_MAPPING: Record<number, string> = {
 
 export class ChangellyService {
   private static async makeRequest(endpoint: string, options: RequestInit = {}) {
-    const headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'X-Api-Key': API_KEY,
-      ...options.headers
-    };
+    const url = `${PROXY_BASE_URL}${endpoint}`;
+    console.log('Making request to:', url);
 
-    const response = await fetch(`${PROXY_BASE_URL}${endpoint}`, {
-      ...options,
-      headers
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Api-Key': API_KEY,
+          ...options.headers
+        }
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error: ${response.status} - ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+
+      // Log raw response for debugging
+      const responseText = await response.text();
+      console.log('Raw API response:', responseText);
+
+      if (!responseText) {
+        throw new Error('Empty response from server');
+      }
+
+      return JSON.parse(responseText);
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
  
@@ -95,49 +109,53 @@ public static async getGasPrices(chainId: number): Promise<GasPrices> {
     selectedGasSpeed: GasSpeed = 'low'
   ): Promise<Quote> {
     try {
-      // Get gas prices in GWEI (not converted to WEI)
+      // Get gas prices first
       const gasPrices = await this.getGasPrices(chainId);
       const gasPriceGwei = gasPrices[selectedGasSpeed];
 
-      // Important: Use correct token addresses
-      const fromTokenAddress = fromToken.address.toLowerCase() === NATIVE_TOKEN.toLowerCase()
-        ? WRAPPED_TOKEN_MAPPING[chainId]
-        : fromToken.address;
+      // Map token addresses
+      const fromTokenAddress = this.mapTokenAddress(chainId, fromToken.address);
+      const toTokenAddress = this.mapTokenAddress(chainId, toToken.address);
 
-      const toTokenAddress = toToken.address.toLowerCase() === NATIVE_TOKEN.toLowerCase()
-        ? WRAPPED_TOKEN_MAPPING[chainId]
-        : toToken.address;
-
-      const params = new URLSearchParams({
+      // Build quote params exactly as per documentation
+      const queryParams = new URLSearchParams({
         fromTokenAddress,
         toTokenAddress,
         amount,
         slippage: '1',
-        gasPrice: gasPriceGwei, // Send raw GWEI value
-        skipValidation: 'true'
+        gasPrice: gasPriceGwei,
+        skipValidation: 'false'
       });
 
       if (walletAddress) {
-        params.set('recipientAddress', walletAddress);
-        params.set('takerAddress', walletAddress);
+        queryParams.append('takerAddress', walletAddress);
+        queryParams.append('recipientAddress', walletAddress);
       }
 
-      console.log('Quote request params:', {
+      // Log the full request details
+      console.log('Quote request:', {
         chainId,
+        queryParams: queryParams.toString(),
         fromToken: fromToken.symbol,
         toToken: toToken.symbol,
         amount,
         gasPrice: gasPriceGwei
       });
 
-      // Get quote from API
-      const quote = await this.makeRequest(`/v1/${chainId}/quote?${params.toString()}`);
-      console.log('Quote response:', quote);
+      // Make the request with proper error handling
+      const endpoint = `/v1/${chainId}/quote?${queryParams.toString()}`;
+      const quote = await this.makeRequest(endpoint);
 
+      // Validate quote response
+      if (!quote || !quote.amount_out_total || !quote.estimate_gas_total) {
+        throw new Error('Invalid quote response from server');
+      }
+
+      console.log('Successful quote:', quote);
       return quote;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Quote error:', error);
-      throw error;
+      throw new Error(`Failed to get quote: ${error.message}`);
     }
   }
 
@@ -158,26 +176,25 @@ public static async getGasPrices(chainId: number): Promise<GasPrices> {
         walletAddress,
         selectedGasSpeed
       );
-  
+
+      // Format transaction data according to MetaMask requirements
       const transaction: SwapTransaction = {
         from: walletAddress,
         to: quote.to,
         data: quote.calldata,
         value: fromToken.address.toLowerCase() === NATIVE_TOKEN.toLowerCase() 
-          ? `0x${BigInt(amount).toString(16)}`
+          ? amount // Use original amount for native token
           : '0x0',
-        gasPrice: `0x${BigInt(quote.gas_price).toString(16)}`,
-        gas: `0x${BigInt(quote.estimate_gas_total).toString(16)}`,
+        gasPrice: quote.gas_price,
+        gas: quote.estimate_gas_total
       };
-  
+
       return { transaction, quote };
     } catch (error) {
       console.error('Swap execution error:', error);
       throw error;
     }
   }
-  
-
 
   public static async loadTokens(chainId: number): Promise<Token[]> {
     try {

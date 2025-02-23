@@ -484,29 +484,28 @@ const ChangellyDEX: React.FC<ChangellyDEXProps> = ({ onClose, className = '' }) 
 			)}
 		</div>
 	);
-
-	// Replace renderGasInfo with this simpler version that uses the quote directly
+	
 	const renderGasInfo = () => {
 		if (!quote || !gasPrices || !fromToken) return null;
 	
-		const gasLimit = quote.estimate_gas_total;
-		const gasPrice = gasPrices[selectedGasSpeed];
 		const isNativeToken = fromToken.address.toLowerCase() === NATIVE_TOKEN.toLowerCase();
+		const amountInDecimals = parseUnits(amount || '0', fromToken.decimals).toString();
 	
-		const { gasCostNative, totalCostNative } = GasService.calculateTransactionCost(
-			gasLimit,
-			gasPrice,
-			amount,
+		const { gasCost, totalCost } = GasService.calculateGasForTransaction(
+			selectedChain.id,
+			quote.estimate_gas_total,
+			gasPrices[selectedGasSpeed],
+			amountInDecimals,
 			isNativeToken
 		);
 	
 		return (
 		  <div className="text-sm text-gray-400 mt-1">
-			<p>Gas Limit: {parseInt(gasLimit).toLocaleString()} units</p>
-			<p>Gas Price: {parseFloat(gasPrice).toFixed(2)} GWEI</p>
-			<p>Network Fee: {gasCostNative.toFixed(6)} {selectedChain.shortname}</p>
+			<p>Gas Limit: {parseInt(quote.estimate_gas_total).toLocaleString()} units</p>
+			<p>Gas Price: {GasService.formatGasDisplay(selectedChain.id, gasPrices[selectedGasSpeed])}</p>
+			<p>Network Fee: {formatUnits(BigInt(gasCost), 18)} {selectedChain.shortname}</p>
 			{isNativeToken && (
-			  <p>Total Cost: {totalCostNative.toFixed(6)} {selectedChain.shortname}</p>
+			  <p>Total Cost: {formatUnits(BigInt(totalCost), 18)} {selectedChain.shortname}</p>
 			)}
 		  </div>
 		);

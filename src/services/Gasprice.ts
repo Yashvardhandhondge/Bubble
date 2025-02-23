@@ -160,4 +160,42 @@ export class GasService {
       return { gasCostNative: 0, totalCostNative: 0 };
     }
   }
+
+  public static calculateGasForTransaction(
+    chainId: number,
+    gasLimit: string,
+    gasPriceGwei: string,
+    amount: string,
+    isNativeToken: boolean
+  ): { gasCost: string; totalCost: string } {
+    try {
+      // Convert everything to BigInt for accurate calculations
+      const gasLimitBig = BigInt(gasLimit);
+      const gasPriceWei = BigInt(Math.floor(parseFloat(gasPriceGwei) * 1e9));
+      const amountBig = isNativeToken ? BigInt(amount) : BigInt(0);
+
+      // Calculate gas cost in WEI
+      const gasCostWei = gasLimitBig * gasPriceWei;
+      
+      // Calculate total cost (gas + amount for native tokens)
+      const totalCostWei = gasCostWei + amountBig;
+
+      return {
+        gasCost: gasCostWei.toString(),
+        totalCost: totalCostWei.toString()
+      };
+    } catch (error) {
+      console.error('Gas calculation error:', error);
+      return { gasCost: '0', totalCost: '0' };
+    }
+  }
+
+  public static formatGasDisplay(chainId: number, wei: string): string {
+    try {
+      const valueInGwei = Number(wei) / 1e9;
+      return `${valueInGwei.toFixed(6)} GWEI`;
+    } catch {
+      return '0 GWEI';
+    }
+  }
 }
