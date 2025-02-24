@@ -4,9 +4,9 @@ import { FaTelegram } from "react-icons/fa";
 import { useData } from '../context/DataContext';
 import WalletConnect from './WalletConnect';
 import { useAccount } from 'wagmi';
-import ChangellyDEX from './Changelly';
+import { SwapCard } from './Swap/SwapInterface/SwapCard';
 import { ErrorBoundary } from './ErrorBoundary';
-import { Link } from 'react-router-dom';
+
 
 interface Filters {
 	skipPotentialTraps: boolean;
@@ -327,11 +327,13 @@ const Navbar: React.FC<NavbarProps> = ({
 					</div>
 				)}
 			</div>
-			{showDEX && (
+			<div 
+				className={`fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ${showDEX ? 'translate-y-0' : '-translate-y-full'}`}
+			>
 				<ErrorBoundary>
-					<ChangellyDEX onClose={() => setShowDEX(false)} />
+					<SwapCard />
 				</ErrorBoundary>
-			)}
+			</div>
 		</div>
 	);
 };

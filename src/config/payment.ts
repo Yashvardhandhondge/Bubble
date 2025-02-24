@@ -1,4 +1,5 @@
-import { http, createConfig } from 'wagmi';
+// src/config/wallet.ts
+import { http } from 'wagmi'
 import {
   mainnet,
   optimism,
@@ -7,13 +8,11 @@ import {
   avalanche,
   fantom,
   bsc
-} from 'wagmi/chains';
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { createPublicClient, fallback, http as viemHttp } from 'viem';
+} from 'wagmi/chains'
+import { getDefaultConfig } from '@rainbow-me/rainbowkit'
+import { QueryClient } from '@tanstack/react-query'
 
-const projectId = 'bfd7872dd9235ed6ec86f95411b7d584';
-
-const chains = [
+export const chains = [
   mainnet,
   optimism,
   polygon,
@@ -23,23 +22,18 @@ const chains = [
   bsc
 ] as const;
 
-// Explicitly declare transports with proper types
-const transports = {
-  [mainnet.id]: http(),
-  [optimism.id]: http(),
-  [polygon.id]: http(),
-  [arbitrum.id]: http(),
-  [avalanche.id]: http(),
-  [fantom.id]: http(),
-  [bsc.id]: http()
-} as const;
+// Configure transports for each chain
+const transports = Object.fromEntries(
+  chains.map(chain => [chain.id, http()])
+) as Record<number, ReturnType<typeof http>>;
 
 export const config = getDefaultConfig({
-  appName: 'CoinChartFun',
-  projectId,
+  appName: 'Swap DApp',
+  projectId: "bfd7872dd9235ed6ec86f95411b7d584",
   chains,
   transports,
   ssr: true
 });
 
-export { chains };
+// Create Query Client
+export const queryClient = new QueryClient();
