@@ -188,6 +188,7 @@ export function useSwapExecution() {
 
   return {
     isApproving,
+    needsApproval: false, 
     error,
     executeSwap,
     approveToken,

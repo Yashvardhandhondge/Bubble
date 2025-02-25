@@ -1,10 +1,11 @@
-import  { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import * as d3 from 'd3';
 import { useData } from '../context/DataContext';
 import './bubble.css';
-import {Wget} from './Wget'; 
+
 import Modal from './Modal';
+import TokenWidget from './TokenWidget';
 
 const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewport height
 const PADDING_TOP = 74;
@@ -44,7 +45,12 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   const simulationRef = useRef<d3.Simulation<DataItem, undefined> | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [showWidget, setShowWidget] = useState(false); // State to conditionally render Wget
-  const [showModal, setShowModal] = useState(false);
+  const [selectedBubble, setSelectedBubble] = useState<DataItem | null>(null);
+
+  // Debug filtered data
+  useEffect(() => {
+    console.log("Filtered data updated:", filteredData.length, filteredData[0]);
+  }, [filteredData]);
 
   // Dynamic container width adjustment
   const updateContainerWidth = useCallback(() => {
@@ -62,6 +68,27 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     return () => resizeObserver.disconnect();
   }, [updateContainerWidth]);
 
+  // Replace getRiskBand with a band-based approach
+  function getRiskBand(risk: number) {
+    // Default to 50 if risk is NaN, null or undefined
+    const safeRisk = (risk === null || risk === undefined || isNaN(risk)) ? 50 : risk;
+    
+    // Ensure risk is between 10 and 100
+    const clampedRisk = Math.max(10, Math.min(100, safeRisk));
+    
+    // For example, 90-100 at top, 80-89 below, etc.
+    if (clampedRisk >= 90) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.21;
+    } else if (clampedRisk >= 80) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
+    } else if (clampedRisk >= 70) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.44;
+    } else if (clampedRisk >= 60) {
+      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.56;
+    }
+    return PADDING_TOP + EFFECTIVE_HEIGHT * 0.7;
+  }
+
   // Filter and process data
   const rangeFilteredData = useMemo<DataItem[]>(() => {
     if (!filteredData?.length) {
@@ -77,29 +104,43 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     
     const slicedData = filteredData
       .slice(start - 1, end)
-      .map(item => ({
-        ...item,
-        x: containerWidth / 2 + (Math.random() - 0.5) * 100,
-        y: getRiskBand(item.risk ?? 50),
-        radius: Math.max(
-          BUBBLE_MIN_SIZE,
-          Math.min(BUBBLE_MAX_SIZE, (item.bubbleSize || 0.5) * 35)
-        )
-      }));
-
+      .map(item => {
+        // Use safeBubbleSize: if item.bubbleSize is invalid, assign random default.
+        const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
+          ? Number(item.bubbleSize)
+          : Math.random() * 0.5 + 0.5;
+        return {
+          ...item,
+          risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
+          // Calculate radius using safeBubbleSize (multiplier kept as 35)
+          radius: Math.max(
+            BUBBLE_MIN_SIZE,
+            Math.min(BUBBLE_MAX_SIZE, safeBubbleSize * 35)
+          ),
+          x: containerWidth / 2 + (Math.random() - 0.5) * 100,
+          y: getRiskBand((item.risk !== null && !isNaN(Number(item.risk)))
+                ? Number(item.risk)
+                : 50)
+        };
+      });
+      
     console.log(`Processed ${slicedData.length} items for display`);
+    // Validate data for any NaN
+    const nanItems = slicedData.filter(item => 
+      isNaN(item.x) || isNaN(item.y) || isNaN(item.radius));
+    if (nanItems.length > 0) {
+      console.error("Found items with NaN position/size:", nanItems.length);
+    }
+    
     return slicedData;
   }, [filteredData, selectedRange, containerWidth]);
 
-  // Add debug logging
-  useEffect(() => {
-    console.log('Filtered Data:', filteredData);
-    console.log('Range Filtered Data:', rangeFilteredData);
-  }, [filteredData, rangeFilteredData]);
-
   // Replace the previous calculateBubbleColor function with the following:
   const calculateBubbleColor = (risk: number) => {
-    const clampedRisk = Math.max(10, Math.min(100, risk));
+    // Default to 50 if risk is NaN, null or undefined
+    const safeRisk = (risk === null || risk === undefined || isNaN(risk)) ? 50 : risk;
+    
+    const clampedRisk = Math.max(10, Math.min(100, safeRisk));
     const t = (clampedRisk - 10) / 90; // normalize risk between 0 and 1
     // Smoothly interpolate from green (low risk) to red (high risk)
     const borderColor = d3.interpolateRgb("rgba(30,255,30,0.9)", "rgba(255,0,0,0.95)")(t);
@@ -112,26 +153,10 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     };
   };
 
-  // Replace getRiskBand with a band-based approach
-  function getRiskBand(risk: number) {
-    // Ensure risk is between 10 and 100
-    const clampedRisk = Math.max(10, Math.min(100, risk));
-    // For example, 90-100 at top, 80-89 below, etc.
-    if (clampedRisk >= 90) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.21;
-    } else if (clampedRisk >= 80) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.34;
-    } else if (clampedRisk >= 70) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.44;
-    } else if (clampedRisk >= 60) {
-      return PADDING_TOP + EFFECTIVE_HEIGHT * 0.56;
-    }
-    return PADDING_TOP + EFFECTIVE_HEIGHT * 0.6;
-  }
-
   // Update createBubbleHTML to enhance text visibility
   const createBubbleHTML = (d: DataItem) => {
-    const colors = calculateBubbleColor(d.risk || 0);
+    const safeRisk = (d.risk === null || d.risk === undefined || isNaN(Number(d.risk))) ? 50 : Number(d.risk);
+    const colors = calculateBubbleColor(safeRisk);
     const iconSize = `${d.radius * 0.6}px`;
     const symbolFontSize = `${d.radius * 0.40}px`; // Slightly larger
     const percentFontSize = `${d.radius * 0.3}px`; // Slightly larger
@@ -184,7 +209,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
                            0 0 2px rgba(0, 0, 0, 1);
               "
             >
-              ${d.risk?.toFixed(1)}%
+              ${safeRisk.toFixed(1)}%
             </span>
           </div>
         </div>
@@ -193,23 +218,20 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   };
 
 
-  const handleBubbleClick = () => {
-    setShowModal(true);
+  const handleBubbleClick = (d: DataItem) => {
+    setSelectedBubble(d);
+    // onBubbleClick(d);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
+  const handleCloseWidget = () => {
+    setSelectedBubble(null);
   };
 
-  
-
-  
   useEffect(() => {
     if (!containerRef.current || !rangeFilteredData.length || !containerWidth) {
       console.warn("Missing container width or data", containerWidth, rangeFilteredData.length);
       return;
     }
-    
     
     if (simulationRef.current) {
       simulationRef.current.stop();
@@ -218,23 +240,23 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     const container = d3.select(containerRef.current);
     container.selectAll("*").remove();
 
-    // Append bubble container with a temporary style for debugging
+    // Append bubble container
     const bubbleContainer = container
       .append("div")
-      .attr("class", "bubbles-wrapper")
-      .style("background-color", "rgba(255, 0, 0, 0.05)"); // Debug background
+      .attr("class", "bubbles-wrapper");
 
-    const initializedData = rangeFilteredData.map((d) => ({
-      ...d,
-      // Added a horizontal offset of 5% of containerWidth
-      x: containerWidth / 2 + (Math.random() - 0.5) * containerWidth * 0.3 + containerWidth * 0.05,
-      y: getRiskBand(d.risk ?? 50),
-      radius: Math.max(
-        BUBBLE_MIN_SIZE, 
-        Math.min(BUBBLE_MAX_SIZE, d.bubbleSize ? d.bubbleSize * 35 : 35) // Increased multiplier
-      )
-    }));
-    console.log("Initialized data:", initializedData);
+    // Check the data for any NaN values before using it
+    const validData = rangeFilteredData.map(d => {
+      // Ensure all required properties are valid numbers
+      return {
+        ...d,
+        x: isNaN(d.x) ? containerWidth / 2 : d.x,
+        y: isNaN(d.y) ? CONTAINER_HEIGHT / 2 : d.y,
+        radius: isNaN(d.radius) ? BUBBLE_MIN_SIZE : d.radius
+      };
+    });
+
+    console.log(`Rendering ${validData.length} bubbles`);
 
     const calculateStrength = () => {
       const baseStrength = isCollapsed ? 0.07 : 0.12;
@@ -243,33 +265,36 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       return Math.min(0.15, Math.max(0.05, dynamicStrength));
     };
 
-    const simulation = d3.forceSimulation<DataItem>(initializedData)
+    const simulation = d3.forceSimulation<DataItem>(validData)
       .force("x", d3.forceX<DataItem>((d) => {
-      const bandOffset = ((d.risk || 0) % 10) / 10;
-      const spread = containerWidth * 0.07; // Reduced spread
-      return containerWidth / 2 + (bandOffset - 0.2) * spread + containerWidth * 0.02;
+        const safeRisk = (d.risk === null || d.risk === undefined || isNaN(Number(d.risk))) ? 50 : Number(d.risk);
+        const bandOffset = (safeRisk % 10) / 10;
+        const spread = containerWidth * 0.07; // Reduced spread
+        return containerWidth / 2 + (bandOffset - 0.2) * spread + containerWidth * 0.02;
       }).strength(calculateStrength())) // Dynamic strength based on chart width
-      .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50))
-      .strength(1))
+      .force("y", d3.forceY<DataItem>((d) => {
+        const safeRisk = (d.risk === null || d.risk === undefined || isNaN(Number(d.risk))) ? 50 : Number(d.risk);
+        return getRiskBand(safeRisk);
+      }).strength(1))
       .force("collide", d3.forceCollide<DataItem>()
-      .radius(d => d.radius + BUBBLE_PADDING)
-      .strength(1))
+        .radius(d => d.radius + BUBBLE_PADDING)
+        .strength(1))
       .force("charge", d3.forceManyBody<DataItem>()
-      .strength(d => -Math.pow(d.radius, 2) * 0.3))
+        .strength(d => -Math.pow(d.radius, 2) * 0.3))
       // Lower the alphaDecay for a longer simulation period
       .alphaDecay(0.01)
       .velocityDecay(0.3);
+    
     simulationRef.current = simulation;
 
     const bubbles = bubbleContainer.selectAll<HTMLDivElement, DataItem>(".bubble-container")
-      .data(initializedData)
+      .data(validData)
       .enter()
       .append("div")
       .attr("class", "bubble-container")
       .style("opacity", "0")
       .html(createBubbleHTML)
-      .on("click", handleBubbleClick);
-
+      .on("click", (event, d) => handleBubbleClick(d));
 
     bubbles.transition()
       .duration(600)
@@ -306,22 +331,17 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       </div>
     );
   }
-
   
-  if (showWidget) {
-    return <Wget />;
-  }
+  
 
   // Create grid lines with equal spacing
   const gridLines = [
-    { range: '90', position: 0 },    // 80% risk
-    { range: '70', position: 25 },    // 60% risk
-    { range: '50', position: 50 },    // 40% risk
-    { range: '30', position: 75 },    // 20% risk
-    { range: '10', position: 100 }      // 10% risk (bottom)
+    { range: '90', position: 0 },    // 90% risk
+    { range: '70', position: 25 },   // 70% risk
+    { range: '50', position: 50 },   // 50% risk
+    { range: '30', position: 75 },   // 30% risk
+    { range: '10', position: 100 }   // 10% risk (bottom)
   ];
-
-  // This function is already defined earlier in the code
 
   return (
     <>
@@ -389,12 +409,14 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
           />
         </div>
       </div>
-      <Modal isOpen={showModal} onClose={handleCloseModal}>
-        <Wget />
-      </Modal>
+      {selectedBubble && (
+        <TokenWidget 
+          tokenData={selectedBubble} 
+          onClose={handleCloseWidget}
+        />
+      )}
     </>
   );
 }
 
 export default BubbleChart;
-

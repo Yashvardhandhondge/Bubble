@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { useData } from '../context/DataContext';
 import Modal from './Modal';
 import { Wget } from './Chart';
+import TokenWidget from './TokenWidget';
 
 interface DataItem extends d3.SimulationNodeDatum {
   risk?: number;
@@ -37,6 +38,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [showModal, setShowModal] = useState(false);
   const [selectedToken, setSelectedToken] = useState<DataItem | null>(null);
+  const [selectedBubble, setSelectedBubble] = useState<DataItem | null>(null);
 
   // Calculate container dimensions
   useEffect(() => {
@@ -89,7 +91,17 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
 
     return filteredData
       .slice(Math.max(0, start), Math.min(filteredData.length, end))
-      .map(item => ({ ...item } as DataItem));
+      .map(item => {
+        const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
+          ? Number(item.bubbleSize)
+          : Math.random() * 0.5 + 0.5;
+        return {
+          ...item,
+          risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
+          // Use safe value to determine bubble radius.
+          bubbleSize: safeBubbleSize
+        } as DataItem;
+      });
   }, [filteredData, selectedRange]);
 
   // Calculate bubble color based on risk
@@ -108,9 +120,12 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     };
   };
 
-  const handleBubbleClick = (data: DataItem) => {
-    setSelectedToken(data);
-    setShowModal(true);
+  const handleBubbleClick = (d: DataItem) => {
+    setSelectedBubble(d);
+  };
+
+  const handleCloseWidget = () => {
+    setSelectedBubble(null);
   };
 
   const handleCloseModal = () => {
@@ -282,11 +297,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
           className="relative w-full h-full z-20"
         />
       </div>
-
-      {showModal && selectedToken && (
-        <Modal isOpen={showModal} onClose={handleCloseModal}>
-          <Wget onClose={handleCloseModal} />
-        </Modal>
+      {selectedBubble && (
+        <TokenWidget 
+          tokenData={selectedBubble} 
+          onClose={handleCloseWidget}
+        />
       )}
     </>
   );

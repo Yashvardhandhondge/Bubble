@@ -227,7 +227,7 @@ const Navbar: React.FC<NavbarProps> = ({
 						onClick={() => setShowDEX(true)}
 						className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 					>
-						Open DEX
+						Swap
 					</button>
 				</div>
 			</div>
@@ -328,10 +328,10 @@ const Navbar: React.FC<NavbarProps> = ({
 				)}
 			</div>
 			<div 
-				className={`fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ${showDEX ? 'translate-y-0' : '-translate-y-full'}`}
+				className={`fixed inset-0 z-50 transition-all duration-300 ${showDEX ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
 			>
 				<ErrorBoundary>
-					<SwapCard />
+					<SwapCard onClose={() => setShowDEX(false)} />
 				</ErrorBoundary>
 			</div>
 		</div>

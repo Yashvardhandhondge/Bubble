@@ -139,16 +139,8 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
 
     
       {showDEX && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center">
-          <div className="relative w-full max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg">
-            <button
-              onClick={() => setShowDEX(false)}
-              className="absolute top-2 right-2 text-gray-600 hover:text-gray-900"
-            >
-              <X size={24} />
-            </button>
-            <SwapCard />
-          </div>
+        <div className="fixed inset-0 z-50 bg-black/50">
+          <SwapCard onClose={() => setShowDEX(false)} />
         </div>
       )}
     </>

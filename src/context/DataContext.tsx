@@ -69,7 +69,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [currentToken, setCurrentToken] = useState<string>("binance"); // new token state
 
   // Add a retry mechanism
-  const fetchWithRetry = async (url: string, retries = 1): Promise<Response> => {
+  const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     for (let i = 0; i < retries; i++) {
       console.log("Fetching data...", i);
       
@@ -104,40 +104,123 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
         if (!isSubscribed) return;
 
-        // Process risks data
-        const risksText = await risksResponse.text();
-        const sanitizedRisksText = risksText.replace(/NaN/g, "null");
-        const risksResult = JSON.parse(sanitizedRisksText);
+        // Process risks data - handle text directly before parsing
+        let risksText = await risksResponse.text();
+        
+        try {
+          // More aggressive sanitization for NaN, Infinity, and undefined values
+          // We need to handle all these cases explicitly to avoid JSON parsing errors
+          
+          // Replace NaN with null directly in the string
+          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)NaN/g, '$1null');
+          
+          // Replace Infinity and -Infinity
+          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)Infinity/g, '$1null');
+          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)-Infinity/g, '$1null');
+          
+          // Replace undefined
+          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)undefined/g, '$1null');
+          
+          // Log a small portion of the sanitized JSON for debugging
+          console.log("Sanitized JSON sample:", risksText.substring(0, 100) + "...");
+          
+          // Parse the sanitized JSON
+          const risksResult = JSON.parse(risksText);
+          
+          // Process signals data
+          let signalsData = [];
+          try {
+            signalsData = await signalsResponse.json();
+          } catch (signalError) {
+            console.error("Error parsing signals:", signalError);
+            signalsData = []; // Fallback to empty array if signals parsing fails
+          }
 
-        // Process signals data only if premium; otherwise, empty
-        const signalsData = await signalsResponse.json();
+          // Transform and set data with extra safety checks
+          const transformedRisksData = Object.entries(risksResult)
+            .map(([key, value]: [string, any]) => {
+              // Default values for each field with explicit conversions and safety checks
+              return {
+                symbol: key,
+                risk: typeof value.risk === 'number' && !isNaN(value.risk) ? value.risk : 50,
+                icon: value.icon || `https://coinchart.fun/icons/${key}.png`,
+                price: typeof value.price === 'number' && !isNaN(value.price) ? value.price : 0,
+                volume: typeof value.volume === 'number' && !isNaN(value.volume) ? value.volume : 0,
+                moralisLink: value.moralisLink || "#",
+                warnings: Array.isArray(value.warnings) ? value.warnings : [],
+                "1mChange": typeof value["1mChange"] === 'number' && !isNaN(value["1mChange"]) ? value["1mChange"] : 0,
+                "2wChange": typeof value["2wChange"] === 'number' && !isNaN(value["2wChange"]) ? value["2wChange"] : 0,
+                "3mChange": typeof value["3mChange"] === 'number' && !isNaN(value["3mChange"]) ? value["3mChange"] : 0,
+                bubbleSize: typeof value.bubbleSize === 'number' && !isNaN(value.bubbleSize) 
+                  ? value.bubbleSize 
+                  : Math.random() * 0.5 + 0.5 // Random value between 0.5 and 1
+              };
+            })
+            .sort((a, b) => (b.volume || 0) - (a.volume || 0));
 
-        // Transform and set data
-        const transformedRisksData = Object.entries(risksResult)
-          .map(([key, value]: [string, any]) => ({
-            symbol: key,
-            risk: value.risk,
-            icon: value.icon,
-            price: value.price,
-            volume: value.volume || 0,
-            moralisLink: value.moralisLink,
-            warnings: value.warnings || [],
-            "1mChange": value["1mChange"],
-            "2wChange": value["2wChange"],
-            "3mChange": value["3mChange"],
-            bubbleSize: value.bubbleSize
-          }))
-          .sort((a, b) => (b.volume || 0) - (a.volume || 0));
+          console.log(`Processed ${transformedRisksData.length} crypto items`);
 
-        // Sort signals if any
-        const sortedSignals = (signalsData as any[]).sort(
-          (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
-        );
+          // Sort signals if any
+          const sortedSignals = (signalsData as any[]).sort(
+            (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+          );
 
-        setData(transformedRisksData);
-        setFilteredData(transformedRisksData);
-        setSignals(sortedSignals);
-        setError(null);
+          setData(transformedRisksData);
+          setFilteredData(transformedRisksData);
+          setSignals(sortedSignals);
+          setError(null);
+        } catch (parseError) {
+          console.error('Error parsing JSON:', parseError);
+          
+          // Log more details about the failed JSON for debugging
+          const errorPos = (parseError as any).message?.match(/position (\d+)/)?.[1];
+          if (errorPos) {
+            const errorContext = risksText.substring(
+              Math.max(0, parseInt(errorPos) - 20),
+              Math.min(risksText.length, parseInt(errorPos) + 20)
+            );
+            console.error(`JSON error context: "...${errorContext}..."`);
+          }
+          
+          // Fallback to manually constructing data from the problematic JSON
+          try {
+            // Manual fallback - this is a desperate attempt if regex fails
+            // Extract pairs like "Symbol": { ... } and construct valid objects
+            const tokens: CryptoData[] = [];
+            const tokenMatches = risksText.match(/"([^"]+)":\s*{[^}]*}/g) || [];
+            
+            for (const match of tokenMatches) {
+              const symbolMatch = match.match(/"([^"]+)":/);
+              if (symbolMatch && symbolMatch[1]) {
+                const symbol = symbolMatch[1];
+                tokens.push({
+                  symbol,
+                  risk: 50, // Default risk
+                  icon: `https://coinchart.fun/icons/${symbol}.png`,
+                  price: 0,
+                  volume: Math.random() * 5000000,
+                  moralisLink: "#",
+                  warnings: [],
+                  "1mChange": 0,
+                  "2wChange": 0,
+                  "3mChange": 0,
+                  bubbleSize: Math.random() * 0.5 + 0.5
+                });
+              }
+            }
+            
+            if (tokens.length > 0) {
+              console.log(`Fallback: Extracted ${tokens.length} tokens`);
+              setData(tokens);
+              setFilteredData(tokens);
+              setError("Using fallback data due to API format issues");
+            } else {
+              throw new Error("Couldn't parse or extract any token data");
+            }
+          } catch (fallbackError) {
+            setError(`JSON parsing failed completely: ${parseError instanceof Error ? parseError.message : "Unknown parsing error"}`);
+          }
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : "Failed to fetch data");
@@ -151,8 +234,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     // Always fetch data when currentToken changes
     fetchAllData();
     
-    // Set up interval for periodic updates
-    // intervalId = setInterval(fetchAllData, 60000000); // Every minute
+    // Set up interval for periodic updates - removed for now
+    // intervalId = setInterval(fetchAllData, 60000); // Every minute
 
     // Cleanup function
     return () => {
@@ -218,8 +301,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       updateFilters,
       isPremium,
       setIsPremium,
-      currentToken,                 // added
-      setCurrentToken               // added
+      currentToken,
+      setCurrentToken
     }}>
       {children}
     </DataContext.Provider>
