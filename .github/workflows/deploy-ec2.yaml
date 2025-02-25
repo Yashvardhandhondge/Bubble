@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - test  # Runs only when pushing to 'test' branch
+      - main  # Runs only when pushing to 'test' branch
 
 env:
   AWS_REGION: eu-central-1
