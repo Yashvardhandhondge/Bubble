@@ -57,11 +57,16 @@ jobs:
 
             # Install necessary packages
             sudo apt update -y
-            sudo apt install -y docker.io awscli
+            sudo yum install docker -y
+            sudo yum install awscli -y
+            sudo yum install nginx -y
+            sudo yum install certbot python3-certbot-nginx -y
             
             # Start Docker if not running
             sudo systemctl start docker
             sudo systemctl enable docker
+            sudo systemctl start nginx
+            sudo systemctl enable nginx
 
             echo $(aws ecr get-login-password --region $AWS_REGION) | sudo docker login --username AWS --password-stdin $REGISTRY
 
