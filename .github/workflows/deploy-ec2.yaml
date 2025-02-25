@@ -51,7 +51,7 @@ jobs:
           host: ${{ env.PUBLIC_IP }}
           username: ec2-user  # Change if using another EC2 user
           key: ${{ env.PRIVATE_SSH_KEY }}
-          envs: REGISTRY, DOCKER_REPOSITORY, IMAGE_TAG, AWS_REGION
+          envs: REGISTRY, DOCKER_REPOSITORY, IMAGE_TAG, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
           script: |
             echo "🔄 Updating EC2 instance..."
 
