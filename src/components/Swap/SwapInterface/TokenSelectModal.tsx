@@ -40,7 +40,7 @@ export const TokenSelectModal: React.FC<TokenSelectModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="fixed inset-0 bg-black opacity-50" onClick={onClose}></div>
+        <div className="fixed inset-0 bg-black min-h-screen opacity-50" onClick={onClose}></div>
         
         <div className="relative bg-white rounded-lg max-w-md w-full p-6">
           <div className="flex justify-between items-center mb-4">
@@ -87,7 +87,7 @@ export const TokenSelectModal: React.FC<TokenSelectModalProps> = ({
                     <span className="font-medium">{token.symbol}</span>
                     <span className="text-sm text-gray-500">{token.name}</span>
                   </div>
-                  {/* Can add balance here if available */}
+                
                 </button>
               ))}
             </div>

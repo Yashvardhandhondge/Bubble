@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAccount, useWriteContract, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, type Address } from 'viem';
 import { erc20Abi } from 'viem';
-import { changelly } from '../services/ChangellyService';
+import {changelly }from '../services/ChangellyService';
 import { Token } from '../types/api';
 
 export function useSwapExecution() {
@@ -90,49 +90,81 @@ export function useSwapExecution() {
     slippage: string
   ): Promise<`0x${string}` | undefined> => {
     if (!address) return undefined;
-
+  
     try {
       setError(undefined);
-      const amountInDecimals = parseUnits(amount, fromToken.decimals).toString();
-
-      // Get swap route; ensure both taker and recipient use your wallet address
+      
+      // Ensure amount is a valid number
+      if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        throw new Error('Invalid amount');
+      }
+      
+      // Convert the amount to the correct decimal representation for the token
+      const actualAmountInDecimals = parseUnits(amount, fromToken.decimals).toString();
+  
+      console.log('Swap details:', {
+        chainId,
+        fromToken: fromToken.address,
+        toToken: toToken.address,
+        amount,
+        amountInDecimals: actualAmountInDecimals,
+        slippage: Number(slippage) * 10,
+        userAddress: address
+      });
+      
+      // Get route data with the actual amount
       const routeResponse = await changelly.getRoute(
         chainId,
         fromToken.address,
         toToken.address,
-        amountInDecimals,
+        actualAmountInDecimals,
         Number(slippage) * 10,
         '3500000000',
-        address,
         address
       );
       
-      console.log('Route Response:', routeResponse.data);
-
-      const { to: spenderAddress, calldata, estimate_gas_total } = routeResponse.data.rawResponse;
+      console.log('Route API Response Status:', routeResponse.status);
+      console.log('Route API Response Data:', JSON.stringify(routeResponse.data, null, 2));
+  
+      // Check if we got a valid response
+      if (!routeResponse.data || !routeResponse.data.rawResponse) {
+        console.error('Invalid route response:', routeResponse.data);
+        throw new Error('Invalid or empty response from route API');
+      }
+  
+      // Extract the swap parameters from the response
+      const { to: spenderAddress, calldata, value } = routeResponse.data.rawResponse;
+      
       if (!spenderAddress || !calldata) {
         throw new Error('Invalid route response – missing spender address or calldata');
       }
-
-      // <<< SKIP SPENDING CAP >>>
-      // Skipping allowance check and approval steps to directly execute the swap
-
-      // Prepare transaction parameters making sure the sender is set
+      
+      // Prepare transaction parameters
       const txParams = {
         from: address,
         to: spenderAddress as Address,
         data: calldata as `0x${string}`,
-        value: fromToken.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-          ? BigInt(amountInDecimals)
-          : undefined,
+        // Use value from API response if available, otherwise calculate based on token type
+        value: value ? BigInt(value) : 
+               fromToken.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+               ? BigInt(actualAmountInDecimals) 
+               : undefined,
         gasPrice: BigInt('3500000000'),
-        gas: BigInt(estimate_gas_total || '300000')
+        gas: BigInt(routeResponse.data.rawResponse.estimate_gas_total || '300000')
       };
-
-      console.log('Transaction Parameters:', txParams);
-
+  
+      console.log('Transaction Parameters:', {
+        to: txParams.to,
+        value: txParams.value?.toString(),
+        gasPrice: txParams.gasPrice.toString(),
+        gas: txParams.gas.toString(),
+      });
+  
+      // Execute the transaction
       const hash = await sendTransactionAsync(txParams);
-
+      console.log('Transaction sent with hash:', hash);
+  
+      // Wait for transaction receipt
       await new Promise((resolve) => {
         const interval = setInterval(() => {
           if (receipt) {
@@ -141,7 +173,7 @@ export function useSwapExecution() {
           }
         }, 1000);
       });
-
+  
       return hash;
     } catch (err) {
       console.error('Swap failed:', err);

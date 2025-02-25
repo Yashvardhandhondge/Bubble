@@ -96,15 +96,20 @@ export const changelly = {
     takerAddress: string,
     recipientAddress?: string,
     toChainId?: string
-  ) => api.get(`/api/route/${chainId}/${fromToken}/${toToken}`, {
-    params: {
-      amount,
-      slippage,
-      gasPrice,
-      toChainId: toChainId || '',
-      recipientAddress: recipientAddress || '',
-      takerAddress
-    },
-    responseType: 'json' // ensure JSON response rather than blob
-  })
+  ) => {
+    // Don't modify the parameters, send them exactly as provided
+    return api.get(`/api/route/${chainId}/${fromToken}/${toToken}`, {
+      params: {
+        amount,  // Pass amount directly without modifications
+        slippage,
+        gasPrice,
+        takerAddress,
+        recipientAddress: recipientAddress || '',
+        toChainId: toChainId || '',
+      },
+      // Add timeout and proper error handling
+      timeout: 30000,
+      responseType: 'json'
+    });
+  },
 };

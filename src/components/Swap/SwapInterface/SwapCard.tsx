@@ -11,6 +11,36 @@ import { Token } from '../../../types/api';
 import { useSwapExecution } from '../../../hooks/useSwapExecution';
 import { useSwap } from '../../../hooks/useSwap';
 
+// Add a new component for token approval
+const TokenApprovalCard = ({ 
+  tokenSymbol, 
+  onApprove, 
+  onCancel,
+  isApproving 
+}) => (
+  <div className="p-4 bg-yellow-50 border border-yellow-400 rounded-lg mb-4">
+    <h3 className="font-bold text-yellow-800">Token Approval Required</h3>
+    <p className="my-2 text-yellow-700">
+      To swap {tokenSymbol}, you need to approve the DEX to use your tokens.
+    </p>
+    <div className="flex justify-between mt-4">
+      <button
+        onClick={onCancel}
+        className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={onApprove}
+        disabled={isApproving}
+        className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-yellow-300"
+      >
+        {isApproving ? 'Approving...' : `Approve ${tokenSymbol}`}
+      </button>
+    </div>
+  </div>
+);
+
 export const SwapCard: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
   const [selectingToken, setSelectingToken] = useState<'from' | 'to' | null>(null);
@@ -33,8 +63,11 @@ export const SwapCard: React.FC = () => {
 
   const {
     isApproving,
+    needsApproval,   // New props
+    approvalData,    // New props
     error: swapError,
-    executeSwap
+    executeSwap,
+    approveToken
   } = useSwapExecution();
 
   const [userBalances, setUserBalances] = useState<Record<string, string>>({});
@@ -84,6 +117,30 @@ export const SwapCard: React.FC = () => {
     setShowConfirmation(true);
   };
 
+  // Add function to handle manual token approval
+  const handleApproveToken = async () => {
+    if (!approvalData) return;
+    
+    try {
+      const { tokenAddress, spenderAddress, amount, chainId } = approvalData;
+      const approved = await approveToken(chainId, tokenAddress, spenderAddress, amount);
+      
+      if (approved) {
+        // If approval was successful, try the swap again
+        handleSwap();
+      }
+    } catch (err) {
+      console.error('Approval failed:', err);
+    }
+  };
+
+  // Add function to cancel approval
+  const handleCancelApproval = () => {
+    // Reset the approval state
+    setShowConfirmation(false);
+  };
+
+  // Update handleSwap to handle the approval flow
   const handleSwap = async () => {
     if (!fromToken || !toToken || !fromAmount || !isConnected || !chain || !address) return;
     
@@ -99,11 +156,14 @@ export const SwapCard: React.FC = () => {
       );
 
       if (hash) {
-        // Could add a transaction notification here
+        // Transaction was successful
+        toast.success("Swap completed successfully!");
         await fetchBalances().then(balances => setUserBalances(balances || {}));
       }
+      // No else here - if needsApproval is set, it will be handled by the UI
     } catch (err) {
       console.error('Swap failed:', err);
+      toast.error("Swap failed. Please try again.");
     }
   };
 
@@ -133,6 +193,16 @@ export const SwapCard: React.FC = () => {
         <h2 className="text-2xl font-bold mb-4">Swap Tokens</h2>
         <ChainSelector />
       </div>
+
+      {/* Show approval card if approval is needed */}
+      {needsApproval && approvalData && (
+        <TokenApprovalCard
+          tokenSymbol={approvalData.tokenSymbol}
+          onApprove={handleApproveToken}
+          onCancel={handleCancelApproval}
+          isApproving={isApproving}
+        />
+      )}
 
       {chain ? (
         <>

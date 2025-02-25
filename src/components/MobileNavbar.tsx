@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Menu, ChevronDown } from 'lucide-react';
+import { Search, Menu, ChevronDown, X } from 'lucide-react';
 import { ViewType } from '../types';
 import Bubbles from '../../public/Bubbles';
 import Settings from "../../public/Settings";
+import { SwapCard } from './Swap/SwapInterface/SwapCard';
+
+
 
 interface MobileNavbarProps {
   onViewChange: (view: ViewType) => void;
@@ -19,6 +22,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showRangeDropdown, setShowRangeDropdown] = useState(false);
+  const [showDEX, setShowDEX] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Available range options
@@ -49,6 +53,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     onRangeChange(range);
     setShowRangeDropdown(false);
   };
+  
 
   return (
     <>
@@ -78,13 +83,13 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             <>
               <button 
                 onClick={toggleRangeDropdown}
-                className="flex border border-gray-400 bg-[#68686833]/20 items-center gap-1 px-2 py-1 rounded bg-black text-white"
+                className="flex border mb-4 border-gray-400 bg-[#68686833]/20 items-center gap-1 px-2 py-1 rounded bg-black text-white"
               >
                 <span className="text-sm">{selectedRange}</span>
                 <ChevronDown size={16} className={showRangeDropdown ? "rotate-180" : ""} />
               </button>
               {showRangeDropdown && (
-                <div className="absolute bottom-full left-0 mb-2 w-32 bg-black border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                <div className="absolute bottom-full left-0  w-32 bg-black border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
                   {rangeOptions.map((range, index) => (
                     <div 
                       key={index}
@@ -99,28 +104,53 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             </>
           )}
         </div>
+        <div>
+          {(currentView === 'chart' || currentView === 'settings') && (
+            <button
+              onClick={() => setShowDEX(true)}
+              className="p-1 border border-white bg-[#68686833]/20  mb-4 h-[30px] rounded-full text-white rounded-lg "
+            >
+              ↓↑
+            </button>
+          )}
+        </div>
 
         <div className="flex border border-white rounded-lg mb-4 overflow-hidden">
           <button 
             onClick={() => onViewChange('chart')}
-            className={`flex items-center justify-center w-[60px] h-[50px] ${currentView === 'chart' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'chart' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
           >
             <Bubbles />
           </button>
           <button 
             onClick={() => onViewChange('settings')}
-            className={`flex items-center justify-center w-[60px] h-[50px] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+            className={`flex items-center justify-center w-[60px] h-[30x] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
           >
             <Settings />
           </button>
           <button 
             onClick={() => onViewChange('menu')}
-            className={`flex items-center justify-center w-[60px] h-[50px] ${currentView === 'menu' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'menu' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
           >
             <Menu />
           </button>
         </div>
       </div>
+
+    
+      {showDEX && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center">
+          <div className="relative w-full max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg">
+            <button
+              onClick={() => setShowDEX(false)}
+              className="absolute top-2 right-2 text-gray-600 hover:text-gray-900"
+            >
+              <X size={24} />
+            </button>
+            <SwapCard />
+          </div>
+        </div>
+      )}
     </>
   );
 };
