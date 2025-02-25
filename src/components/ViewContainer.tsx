@@ -21,14 +21,14 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   const { setCurrentToken, filters, updateFilters } = useData();
   const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
     { id: '1', name: 'Short-Term', type: 'short', isActive: true },
-    { id: '2', name: 'Long-Term', type: 'long', isActive: false }
+    { id: '2', name: 'Long-Term', type: 'long', isActive: false },
+    { id: '3', name: 'RSI', type: 'rsi', isActive: false }
   ]);
 
   const [selectedToken, setSelectedToken] = useState<'binance' | 'btcc' | 'ai'>('binance');
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilterStrategyId, setActiveFilterStrategyId] = useState<string | null>(null);
   
-  // Internal filter state to match with context
   const [filterOptions, setFilterOptions] = useState({
     skipTraps: filters.skipPotentialTraps || false,
     avoidHype: filters.avoidOverhypedTokens || false,
@@ -38,10 +38,9 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   const allTokens: Array<{ id: string, name: string, type: 'binance' | 'btcc' | 'ai' }> = [
     { id: '1', name: 'Binance', type: 'binance' },
     { id: '2', name: 'BTCC', type: 'btcc' },
-    { id: '3', name: 'AI Agent', type: 'ai' }
+    { id: '3', name: 'AI Agents', type: 'ai' }
   ];
 
-  // Sync internal filter state with context
   useEffect(() => {
     setFilterOptions({
       skipTraps: filters.skipPotentialTraps || false,
@@ -50,7 +49,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     });
   }, [filters]);
 
-  // Close filters when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -73,7 +71,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   const handleFilterClick = (strategyId: string, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('Filter clicked for strategy:', strategyId);
     
     if (activeFilterStrategyId === strategyId) {
       setShowFilters(false);
@@ -92,7 +89,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     
     setFilterOptions(newFilterOptions);
     
-    // Map to context filter names
     const contextFilters = {
       skipPotentialTraps: newFilterOptions.skipTraps,
       avoidOverhypedTokens: newFilterOptions.avoidHype,
@@ -111,9 +107,8 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     );
   };
 
-  // Common token selection UI
   const renderTokenSelector = () => (
-    <div className="flex gap-2 mt-2">
+    <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
       {allTokens.map(token => (
         <button 
           key={token.id}
@@ -121,7 +116,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
             setSelectedToken(token.type);
             setCurrentToken(token.type === 'ai' ? "cookiefun" : token.type.toLowerCase());
           }}
-          className={`px-4 py-2 rounded-full ${
+          className={`px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 ${
             selectedToken === token.type 
               ? 'bg-blue-600 text-white' 
               : 'bg-gray-800 text-gray-300'
@@ -133,12 +128,90 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     </div>
   );
 
+  const renderStrategyButtons = () => (
+    <div className="flex flex-nowrap gap-2 mb-4 overflow-x-auto pb-2 w-full">
+      <div className="flex flex-nowrap gap-2 min-w-min">
+        {selectedStrategies.map(strategy => (
+          <div key={strategy.id} className="relative filter-container flex-shrink-0">
+            <button
+              onClick={() => setActiveStrategy(strategy.id)}
+              className={`px-4 py-2 rounded-full flex items-center whitespace-nowrap ${
+                strategy.isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300'
+              }`}
+            >
+              {strategy.name}
+              {strategy.type === 'short' && (
+                <button
+                  className="filters-button ml-2"
+                  onClick={(e) => handleFilterClick(strategy.id, e)}
+                >
+                  <SlidersHorizontal size={18} />
+                </button>
+              )}
+            </button>
+            
+            {showFilters && activeFilterStrategyId === strategy.id && strategy.type === 'short' && (
+              <div className="absolute left-0 top-10 mt-2 w-56 bg-gray-800 rounded-lg shadow-lg z-50 filters-dropdown">
+                <div className="p-3 space-y-3">
+                  <h3 className="text-white font-medium border-b border-gray-700 pb-2">
+                    Filter Options
+                  </h3>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                      <input
+                        type="checkbox"
+                        checked={filterOptions.skipTraps}
+                        onChange={(e) => handleFilterOptionClick('skipTraps', e.target.checked)}
+                        className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                      />
+                      Skip Potential Traps
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                      <input
+                        type="checkbox"
+                        checked={filterOptions.avoidHype}
+                        onChange={(e) => handleFilterOptionClick('avoidHype', e.target.checked)}
+                        className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                      />
+                      Avoid Overhyped Tokens
+                    </label>
+                    <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                      <input
+                        type="checkbox"
+                        checked={filterOptions.minMarketCap}
+                        onChange={(e) => handleFilterOptionClick('minMarketCap', e.target.checked)}
+                        className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                      />
+                      Min Market Cap Filter
+                    </label>
+                  </div>
+                  <div className="pt-2 border-t border-gray-700 flex justify-end">
+                    <button
+                      onClick={() => {
+                        setShowFilters(false);
+                        setActiveFilterStrategyId(null);
+                      }}
+                      className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   const renderView = () => {
     switch (currentView) {
       case 'chart':
         return (
           <div className="min-h-[80vh] flex flex-col">
-            {/* Reduce top padding from 12vh to 8vh */}
             <div className="pt-[8vh] px-4 pb-4">
               {renderTokenSelector()}
             </div>
@@ -151,93 +224,9 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
       case 'settings':
         return (
           <div className="min-h-[80vh] flex flex-col">
-            {/* Reduce top padding similarly */}
-            <div className="pt-[8vh] px-4 pb-4">
-              {/* Strategy controls */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {selectedStrategies.map(strategy => (
-                  <div key={strategy.id} className="relative filter-container">
-                    <button
-                      onClick={() => setActiveStrategy(strategy.id)}
-                      className={`px-4 py-2 rounded-full flex items-center ${
-                        strategy.isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-800 text-gray-300'
-                      }`}
-                    >
-                      {strategy.name}
-                      {strategy.type === 'short' && (
-                        <button
-                          className="filters-button ml-2"
-                          onClick={(e) => handleFilterClick(strategy.id, e)}
-                        >
-                          <SlidersHorizontal size={18} />
-                        </button>
-                      )}
-                    </button>
-                    
-                    {showFilters && activeFilterStrategyId === strategy.id && strategy.type === 'short' && (
-                      <div
-                        className="absolute left-0 top-10 mt-2 w-56 bg-gray-800 rounded-lg shadow-lg z-50 filters-dropdown"
-                      >
-                        <div className="p-3 space-y-3">
-                          <h3 className="text-white font-medium border-b border-gray-700 pb-2">
-                            Filter Options
-                          </h3>
-                          <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                              <input
-                                type="checkbox"
-                                checked={filterOptions.skipTraps}
-                                onChange={(e) => handleFilterOptionClick('skipTraps', e.target.checked)}
-                                className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
-                              />
-                              Skip Potential Traps
-                            </label>
-                            <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                              <input
-                                type="checkbox"
-                                checked={filterOptions.avoidHype}
-                                onChange={(e) => handleFilterOptionClick('avoidHype', e.target.checked)}
-                                className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
-                              />
-                              Avoid Overhyped Tokens
-                            </label>
-                            <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                              <input
-                                type="checkbox"
-                                checked={filterOptions.minMarketCap}
-                                onChange={(e) => handleFilterOptionClick('minMarketCap', e.target.checked)}
-                                className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
-                              />
-                              Min Market Cap Filter
-                            </label>
-                          </div>
-                          <div className="pt-2 border-t border-gray-700 flex justify-end">
-                            <button
-                              onClick={() => {
-                                setShowFilters(false);
-                                setActiveFilterStrategyId(null);
-                              }}
-                              className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
-                            >
-                              Apply
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <button className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Plus size={20} className="text-white" />
-                </button>
-              </div>
-              {/* Token selector for settings view */}
-              {renderTokenSelector()}
+            <div className="pt-[9vh] px-4 pb-4">
+              {renderStrategyButtons()}
             </div>
-
-            {/* Ensure chart is displayed in settings */}
             <div className="flex-1">
               <MobileBubbleChart selectedRange={selectedRange} />
             </div>

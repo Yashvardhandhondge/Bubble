@@ -39,6 +39,8 @@ interface DataContextType {
   updateFilters: (newFilters: Partial<FilterSettings>) => void;
   isPremium: boolean;
   setIsPremium: (status: boolean) => void;
+  currentToken: string;
+  setCurrentToken: (token: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -64,6 +66,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [isPremium, setIsPremium] = useState(() => 
     localStorage.getItem('premium_status') === 'active'
   );
+  const [currentToken, setCurrentToken] = useState<string>("binance"); // new token state
 
   // Add a retry mechanism
   const fetchWithRetry = async (url: string, retries = 1): Promise<Response> => {
@@ -82,18 +85,22 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     throw new Error('Failed to fetch after all retries');
   };
 
-  useEffect(() => {
-    if (isMounted.current) return; // Prevent duplicate fetches
-    isMounted.current = true;
+  // Add a helper to build endpoints based on currentToken
+  const getSignalsEndpoint = () => {
+    if (currentToken === "btcc") return "https://api.coinchart.fun/dex_signals/btcc";
+    if (currentToken === "cookiefun") return "https://api.coinchart.fun/dex_signals/cookiefun";
+    return "https://api.coinchart.fun/dex_signals/binance";
+  };
 
+  useEffect(() => {
     let isSubscribed = true;
     let intervalId: NodeJS.Timeout | null = null;
 
     const fetchAllData = async () => {
       try {
-        // Always fetch risks; conditionally fetch signals
-        const risksResponse = await fetchWithRetry("https://api.coinchart.fun/dex_risks");
-        const signalsResponse = await fetchWithRetry("https://api.coinchart.fun/dex_signals");
+        // Use dynamic endpoint based on currentToken
+        const risksResponse = await fetchWithRetry(`https://api.coinchart.fun/dex_risks/${currentToken}`);
+        const signalsResponse = await fetchWithRetry(getSignalsEndpoint());
 
         if (!isSubscribed) return;
 
@@ -141,7 +148,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       }
     };
 
-    // Initial fetch
+    // Always fetch data when currentToken changes
     fetchAllData();
     
     // Set up interval for periodic updates
@@ -154,7 +161,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         clearInterval(intervalId);
       }
     };
-  }, []);
+  }, [currentToken]);
 
   // Separate effect for filtering
   useEffect(() => {
@@ -210,7 +217,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       filters,
       updateFilters,
       isPremium,
-      setIsPremium
+      setIsPremium,
+      currentToken,                 // added
+      setCurrentToken               // added
     }}>
       {children}
     </DataContext.Provider>

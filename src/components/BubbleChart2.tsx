@@ -108,7 +108,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   const createBubbleHTML = (d: DataItem) => {
     const colors = calculateBubbleColor(d.risk || 0);
     const iconSize = `${d.radius * 0.6}px`;
-    const symbolFontSize = `${d.radius * 0.40}px`; // Slightly larger
+    const symbolFontSize = `${d.radius * 0.35}px`; // Slightly larger
     const percentFontSize = `${d.radius * 0.3}px`; // Slightly larger
   
     return `
@@ -207,26 +207,22 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       )
     }));
 
-    const calculateStrength = () => {
-      const baseStrength = isCollapsed ? 0.07 : 0.12;
-      const widthFactor = Math.max(0.5, Math.min(1.5, containerWidth / 1000));
-      const dynamicStrength = baseStrength * (1 / widthFactor);
-      return Math.min(0.15, Math.max(0.05, dynamicStrength));
-    };
-
     const simulation = d3.forceSimulation<DataItem>(initializedData)
       .force("x", d3.forceX<DataItem>((d) => {
-      const bandOffset = ((d.risk || 0) % 10) / 10;
-      const spread = containerWidth * 0.07; // Reduced spread
-      return containerWidth / 2 + (bandOffset - 0.2) * spread + containerWidth * 0.02;
-      }).strength(calculateStrength())) // Dynamic strength based on chart width
+        
+        // const riskBand = Math.floor((d.risk || 0) / 10) * 10;
+        const bandOffset = ((d.risk || 0) % 10) / 10;
+        const spread = containerWidth * 0.07; // Reduced spread
+        // Added offset to shift bubbles right by 5% of containerWidth
+        return containerWidth / 2 + (bandOffset - 0.5) * spread + containerWidth * 0.05;
+      }).strength(0.1)) // Increased strength for tighter grouping
       .force("y", d3.forceY<DataItem>((d) => getRiskBand(d.risk ?? 50))
-      .strength(1))
+        .strength(1)) // Increased strength for better alignment
       .force("collide", d3.forceCollide<DataItem>()
-      .radius(d => d.radius + BUBBLE_PADDING)
-      .strength(1))
+        .radius(d => d.radius + BUBBLE_PADDING)
+        .strength(1)) // Maximum strength for collision
       .force("charge", d3.forceManyBody<DataItem>()
-      .strength(d => -Math.pow(d.radius, 2) * 0.3))
+        .strength(d => -Math.pow(d.radius, 2) * 0.3)) // Radius-based repulsion
       .alphaDecay(0.02)
       .velocityDecay(0.3);
     simulationRef.current = simulation;
@@ -367,4 +363,3 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 }
 
 export default BubbleChart;
-
