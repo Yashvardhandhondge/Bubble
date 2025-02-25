@@ -4,7 +4,7 @@ import { Token } from '../types/api';
 
 const API_BASE_URL = '/api/defi-swap';
 const API_KEY = "57d18ecb-7f0e-456c-a085-2d43ec6e2b3f";
-const DEFAULT_GAS_PRICE = '3500000000'; // Default gas price in wei
+const DEFAULT_GAS_PRICE = '3500000000'; 
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -97,17 +97,15 @@ export const changelly = {
     recipientAddress?: string,
     toChainId?: string
   ) => {
-    // Don't modify the parameters, send them exactly as provided
     return api.get(`/api/route/${chainId}/${fromToken}/${toToken}`, {
       params: {
-        amount,  // Pass amount directly without modifications
+        amount,  
         slippage,
         gasPrice,
         takerAddress,
         recipientAddress: recipientAddress || '',
         toChainId: toChainId || '',
       },
-      // Add timeout and proper error handling
       timeout: 30000,
       responseType: 'json'
     });
