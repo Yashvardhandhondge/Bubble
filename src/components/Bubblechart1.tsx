@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import * as d3 from 'd3';
 import { useData } from '../context/DataContext';
+import { useFavorites } from '../context/FavoritesContext';
 import Modal from './Modal';
 import { Wget } from './Chart';
 import TokenWidget from './TokenWidget';
@@ -33,6 +34,7 @@ const PADDING_BOTTOM = 20;
 
 const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) => {
   const { filteredData, loading, error } = useData();
+  const { favorites, showOnlyFavorites } = useFavorites();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const simulationRef = useRef<d3.Simulation<DataItem, undefined> | null>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
@@ -76,7 +78,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     return PADDING_TOP + EFFECTIVE_HEIGHT * 0.6;
   };
 
-  // Filter data based on selected range
+  // Filter data based on selected range and favorites
   const rangeFilteredData = useMemo<DataItem[]>(() => {
     if (!filteredData.length) return [];
     
@@ -89,23 +91,40 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       end = parseInt(endStr);
     }
 
-    return filteredData
-      .slice(Math.max(0, start), Math.min(filteredData.length, end))
-      .map(item => {
-        const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
-          ? Number(item.bubbleSize)
-          : Math.random() * 0.5 + 0.5;
-        return {
-          ...item,
-          risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
-          // Use safe value to determine bubble radius.
-          bubbleSize: safeBubbleSize
-        } as DataItem;
-      });
-  }, [filteredData, selectedRange]);
+    // Get the filtered data based on range
+    let dataToProcess = filteredData.slice(Math.max(0, start), Math.min(filteredData.length, end));
+    
+    // Apply favorites filter if needed
+    if (showOnlyFavorites) {
+      dataToProcess = dataToProcess.filter(item => 
+        item.symbol && favorites.includes(item.symbol)
+      );
+    }
 
-  // Calculate bubble color based on risk
-  const calculateBubbleColor = (risk: number) => {
+    return dataToProcess.map(item => {
+      const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
+        ? Number(item.bubbleSize)
+        : Math.random() * 0.5 + 0.5;
+      return {
+        ...item,
+        risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
+        // Use safe value to determine bubble radius.
+        bubbleSize: safeBubbleSize
+      } as DataItem;
+    });
+  }, [filteredData, selectedRange, showOnlyFavorites, favorites]);
+
+  // Calculate bubble color based on risk and favorite status
+  const calculateBubbleColor = (risk: number, isFavorite: boolean) => {
+    if (isFavorite) {
+      // Gold colors for favorites
+      return {
+        border: "rgba(255, 215, 0, 0.95)",
+        background: "rgba(255, 215, 0, 0.35)",
+        gradient: "rgba(255, 215, 0, 0.6)"
+      };
+    }
+    
     const clampedRisk = Math.max(10, Math.min(100, risk || 50));
     const t = (clampedRisk - 10) / 90;
     
@@ -134,7 +153,8 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
   };
 
   const createBubbleHTML = (d: DataItem) => {
-    const colors = calculateBubbleColor(d.risk || 50);
+    const isFavorite = d.symbol && favorites.includes(d.symbol);
+    const colors = calculateBubbleColor(d.risk || 50, isFavorite || false);
     const iconSize = Math.max(d.radius * 0.6, 12);
     const symbolFontSize = Math.max(d.radius * 0.35, 10);
     const riskFontSize = Math.max(d.radius * 0.3, 8);
@@ -251,7 +271,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     return () => {
       simulation.stop();
     };
-  }, [rangeFilteredData, containerDimensions, selectedRange]);
+  }, [rangeFilteredData, containerDimensions, selectedRange, favorites]);
 
   if (loading) {
     return (
@@ -264,7 +284,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
   if (!loading && (!filteredData.length || !rangeFilteredData.length)) {
     return (
       <div className="flex items-center justify-center h-[82vh] bg-black">
-        <p className="text-white text-center px-4">No data available for the selected filters</p>
+        <p className="text-white text-center px-4">
+          {showOnlyFavorites && rangeFilteredData.length === 0 
+            ? "No favorites found. Add some by clicking the star icon in a token's details." 
+            : "No data available for the selected filters"}
+        </p>
       </div>
     );
   }

@@ -71,7 +71,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Add a retry mechanism
   const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     for (let i = 0; i < retries; i++) {
-      console.log("Fetching data...", i);
+      // console.log("Fetching data...", i);
       
       try {
         const response = await fetch(url);
@@ -122,7 +122,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)undefined/g, '$1null');
           
           // Log a small portion of the sanitized JSON for debugging
-          console.log("Sanitized JSON sample:", risksText.substring(0, 100) + "...");
+          // console.log("Sanitized JSON sample:", risksText.substring(0, 100) + "...");
           
           // Parse the sanitized JSON
           const risksResult = JSON.parse(risksText);
@@ -158,7 +158,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             })
             .sort((a, b) => (b.volume || 0) - (a.volume || 0));
 
-          console.log(`Processed ${transformedRisksData.length} crypto items`);
+          // console.log(`Processed ${transformedRisksData.length} crypto items`);
 
           // Sort signals if any
           const sortedSignals = (signalsData as any[]).sort(
@@ -179,7 +179,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
               Math.max(0, parseInt(errorPos) - 20),
               Math.min(risksText.length, parseInt(errorPos) + 20)
             );
-            console.error(`JSON error context: "...${errorContext}..."`);
+            // console.error(`JSON error context: "...${errorContext}..."`);
           }
           
           // Fallback to manually constructing data from the problematic JSON
@@ -210,7 +210,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             }
             
             if (tokens.length > 0) {
-              console.log(`Fallback: Extracted ${tokens.length} tokens`);
+              // console.log(`Fallback: Extracted ${tokens.length} tokens`);
               setData(tokens);
               setFilteredData(tokens);
               setError("Using fallback data due to API format issues");
@@ -222,7 +222,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           }
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        // console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : "Failed to fetch data");
       } finally {
         if (isSubscribed) {

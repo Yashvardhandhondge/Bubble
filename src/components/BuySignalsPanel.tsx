@@ -8,10 +8,10 @@ import Buttons from './Buttons';
 import { useData } from '../context/DataContext';
 import { useAccount } from 'wagmi';
 import { DataProvider } from '../context/DataContext';
-import { SignalData } from '../types'; // if not already imported
+import type { SignalData } from '../types';
 
 export const BuySignalsPanel: React.FC = () => {
-  const { signals = [], loading: signalsLoading } = useData();
+  const { signals, loading: signalsLoading, currentToken } = useData();
   const { openConnectModal } = useConnectModal();
   const { address } = useAccount();
   const [isPremium, setIsPremium] = useState(() => 
@@ -53,8 +53,8 @@ export const BuySignalsPanel: React.FC = () => {
           throw new Error(registerData.message);
         }
         
-        // Store JWT token
-        localStorage.setItem('auth_token', registerData.token);
+        // Store JWT token with correct key for axios interceptor to pick it up
+        localStorage.setItem('token', registerData.token);
         
         // Updated API endpoint for subscription check
         const subscriptionResponse = await fetch('http://localhost:5000/api/auth/check-subscription', {
@@ -96,16 +96,16 @@ export const BuySignalsPanel: React.FC = () => {
 
   const isPremiumActive = userData && !!!userData?.subscription?.cancelAtPeriodEnd;
   
-  const mockSignals: SignalData[] = [
-    { symbol: "MOCK1", description: "Mock signal data 1", risks: [] },
-    { symbol: "MOCK1", description: "Mock signal data 1", risks: [] },
-    { symbol: "MOCK1", description: "Mock signal data 1", risks: [] },
-    { symbol: "MOCK1", description: "Mock signal data 1", risks: [] },
-    { symbol: "MOCK1", description: "Mock signal data 1", risks: [] },
-    { symbol: "MOCK1", description: "Mock signal data 1", risks: [] },
-    { symbol: "MOCK2", description: "Mock signal data 2", risks: [] }
+  const mockSignals: SignalData[] = signals.length ? [] : [
+    { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
+    { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
+    { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
+    { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
+    { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
+    { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
+    { symbol: "MOCK2", description: "Mock signal data 2", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 }
   ];
-  const displaySignals = isPremiumActive ? signals : (signals.length ? signals : mockSignals);
+  const displaySignals = isPremiumActive ? signals : mockSignals;
 
   const handleUpgradeToPremium = () => {
     window.open('https://pay.boomfi.xyz/2rwqC9PH4zXMNqTupAXjsNyNJ3v', '_blank');
@@ -113,6 +113,14 @@ export const BuySignalsPanel: React.FC = () => {
 
   const handleTelegramSupport = () => {
     window.open('https://t.me/+1oKOrFd0G2RjYjVk', '_blank');
+  };
+
+  const getTokenTypeLabel = () => {
+    switch (currentToken) {
+      case "btcc": return "BTCC";
+      case "cookiefun": return "AI Agents";
+      default: return "Binance";
+    }
   };
 
   return (
@@ -150,7 +158,9 @@ export const BuySignalsPanel: React.FC = () => {
 
   
       <div className=" px-0 sm:px-4 py-0 sm:py-2 ">
-        <h1 className=" flex  items-center  justify-center text-2xl p-0 sm:p-7 text-white font-semibold  w-full">Latest Buy Signals</h1>
+        <h1 className=" flex  items-center  justify-center text-2xl p-0 sm:p-7 text-white font-semibold  w-full">
+          {getTokenTypeLabel()} Buy Signals
+        </h1>
       </div>
 
         {error && (
@@ -162,7 +172,11 @@ export const BuySignalsPanel: React.FC = () => {
       )}
 
       <div className="flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar">
-        {signalsLoading || loading ? (
+        {!isPremium ? (
+          <div className="text-white text-center mt-8">
+            Upgrade to Premium to view signals
+          </div>
+        ) : signalsLoading || loading ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
         ) : displaySignals?.length > 0 ? (
           <div className="space-y-4 p-5 md:p-0">
@@ -176,7 +190,9 @@ export const BuySignalsPanel: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="text-white text-center mt-8">No signals available</div>
+          <div className="text-white text-center mt-8">
+            No signals available for {getTokenTypeLabel()}
+          </div>
         )}
       </div>
 
@@ -194,8 +210,8 @@ export const BuySignalsPanel: React.FC = () => {
             <span>Premium Support</span>
             <FaTelegram className="w-4 h-4" />
           </button>
-         <div className='flex block md:hidden text-white justify-end '>
-          Api Access ? <FaTelegram />
+         <div className='flex block md:hidden space-x-5 mt-7 ml-3 text-white justify-end '>
+          Api Access ? <span className='text-blue-400 ml-5 mt-1'><FaTelegram /></span>
          </div>
          </div>
         )}

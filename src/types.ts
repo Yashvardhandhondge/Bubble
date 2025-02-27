@@ -95,7 +95,17 @@ export interface Strategy {
 
 export interface SignalData {
   description: string;
-  risks: string[];
+  // Old risks array replaced by warnings and warning_count:
+  warnings: string[];
+  warning_count: number;
+  // New fields from API response:
+  positives: string[];
+  date: string;
+  link: string;
   symbol: string;
-  timestamp?: number;
+  price: number;
+  risk: number;
+  risk_usdt: number;
+  // Optionally keep risks as optional if needed:
+  risks?: string[];
 }

@@ -18,7 +18,7 @@ import { ViewType } from './types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-
+import { FavoritesProvider } from './context/FavoritesContext';
 const queryClient = new QueryClient();
 
 function YourAppContent() {
@@ -46,6 +46,7 @@ function YourAppContent() {
   if (isMobile) {
     return (
       <DataProvider>
+        <FavoritesProvider>
         <Router>
           <div className="h-screen bg-black md:bg-gray-900 relative">
             <MobileNavbar 
@@ -62,6 +63,7 @@ function YourAppContent() {
           </div>
           <Toaster />
         </Router>
+        </FavoritesProvider>
       </DataProvider>
     );
   }
@@ -69,6 +71,7 @@ function YourAppContent() {
   // Desktop View
   return (
     <DataProvider>
+      <FavoritesProvider>
       <Router>
         <Toaster />
         <PaymentVerification />
@@ -93,6 +96,7 @@ function YourAppContent() {
           } />
         </Routes>
       </Router>
+      </FavoritesProvider>
     </DataProvider>
   );
 }
