@@ -41,6 +41,8 @@ interface DataContextType {
   setIsPremium: (status: boolean) => void;
   currentToken: string;
   setCurrentToken: (token: string) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -61,6 +63,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     avoidOverhypedTokens: false,
     marketCapFilter: false,
   });
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const isMounted = useRef(false);
   const [isPremium, setIsPremium] = useState(() => 
@@ -252,39 +255,44 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     const areFiltersActive = Object.values(filters).some(value => value === true);
     
-    if (!areFiltersActive) {
-      setFilteredData(data);
-      return;
+    let filtered = data;
+
+    if (areFiltersActive) {
+      filtered = data.filter(item => {
+        if (!item.warnings || item.warnings.length === 0) return true;
+
+        let shouldInclude = true;
+
+        if (filters.skipPotentialTraps) {
+          shouldInclude = shouldInclude && !item.warnings.some(w => 
+            w.toLowerCase().includes("cycle is falling")
+          );
+        }
+
+        if (filters.avoidOverhypedTokens) {
+          shouldInclude = shouldInclude && !item.warnings.some(w => 
+            w.toLowerCase().includes("cycle spent") && w.toLowerCase().includes("above 80")
+          );
+        }
+
+        if (filters.marketCapFilter) {
+          shouldInclude = shouldInclude && !item.warnings.some(w => 
+            w.toLowerCase().includes("cycle has previously failed")
+          );
+        }
+
+        return shouldInclude;
+      });
     }
 
-    const filtered = data.filter(item => {
-      if (!item.warnings || item.warnings.length === 0) return true;
-
-      let shouldInclude = true;
-
-      if (filters.skipPotentialTraps) {
-        shouldInclude = shouldInclude && !item.warnings.some(w => 
-          w.toLowerCase().includes("cycle is falling")
-        );
-      }
-
-      if (filters.avoidOverhypedTokens) {
-        shouldInclude = shouldInclude && !item.warnings.some(w => 
-          w.toLowerCase().includes("cycle spent") && w.toLowerCase().includes("above 80")
-        );
-      }
-
-      if (filters.marketCapFilter) {
-        shouldInclude = shouldInclude && !item.warnings.some(w => 
-          w.toLowerCase().includes("cycle has previously failed")
-        );
-      }
-
-      return shouldInclude;
-    });
+    if (searchTerm) {
+      filtered = filtered.filter(item => 
+        item.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
     setFilteredData(filtered);
-  }, [data, filters]);
+  }, [data, filters, searchTerm]);
 
   const updateFilters = (newFilters: Partial<FilterSettings>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -302,7 +310,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       isPremium,
       setIsPremium,
       currentToken,
-      setCurrentToken
+      setCurrentToken,
+      searchTerm,
+      setSearchTerm
     }}>
       {children}
     </DataContext.Provider>

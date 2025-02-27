@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ViewType } from '../types';
-import BubbleChart from './BubbleChart2';
+// import BubbleChart from './BubbleChart2';
 import { BuySignalsPanel } from './BuySignalsPanel';
 import { Plus, SlidersHorizontal, X } from 'lucide-react';
 import { Strategy } from '../types';
