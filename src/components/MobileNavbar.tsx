@@ -1,24 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Menu, ChevronDown, X } from 'lucide-react';
+import { Search, Menu, ChevronDown } from 'lucide-react';
 import { ViewType } from '../types';
 import Bubbles from '../../public/Bubbles';
 import Settings from "../../public/Settings";
 import { SwapCard } from './Swap/SwapInterface/SwapCard';
-
-
 
 interface MobileNavbarProps {
   onViewChange: (view: ViewType) => void;
   currentView: ViewType;
   selectedRange: string;
   onRangeChange: (range: string) => void;
+  onSearchChange: (query: string) => void; // Add this prop
 }
 
 export const MobileNavbar: React.FC<MobileNavbarProps> = ({ 
   onViewChange, 
   currentView,
   selectedRange,
-  onRangeChange
+  onRangeChange,
+  onSearchChange // Add this prop
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showRangeDropdown, setShowRangeDropdown] = useState(false);
@@ -53,7 +53,11 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     onRangeChange(range);
     setShowRangeDropdown(false);
   };
-  
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    onSearchChange(e.target.value); // Call the prop function
+  };
 
   return (
     <>
@@ -71,7 +75,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
               placeholder="Search Crypto Currencies"
               className="w-full h-10 bg-gray-800 text-white pl-10 pr-4 rounded-lg focus:outline-none"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange} // Update this line
             />
           </div>
         </div>
@@ -137,7 +141,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         </div>
       </div>
 
-    
       {showDEX && (
         <div className="fixed inset-0 z-50 bg-black/50">
           <SwapCard onClose={() => setShowDEX(false)} />

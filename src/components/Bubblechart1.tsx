@@ -26,13 +26,14 @@ interface DataItem extends d3.SimulationNodeDatum {
 
 interface MobileBubbleChartProps {
   selectedRange: string;
+  searchQuery: string; // Add this prop
 }
 
 // Constants for risk band positioning
 const PADDING_TOP = 20;
 const PADDING_BOTTOM = 20;
 
-const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) => {
+const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, searchQuery }) => {
   const { filteredData, loading, error } = useData();
   const { favorites, showOnlyFavorites } = useFavorites();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -78,7 +79,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
     return PADDING_TOP + EFFECTIVE_HEIGHT * 0.6;
   };
 
-  // Filter data based on selected range and favorites
+  // Filter data based on selected range, favorites, and search query
   const rangeFilteredData = useMemo<DataItem[]>(() => {
     if (!filteredData.length) return [];
     
@@ -101,6 +102,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
       );
     }
 
+    // Apply search term filter
+    if (searchQuery) {
+      dataToProcess = dataToProcess.filter(item => item.symbol?.toLowerCase().startsWith(searchQuery.toLowerCase()));
+    }
+
     return dataToProcess.map(item => {
       const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
         ? Number(item.bubbleSize)
@@ -112,7 +118,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange }) 
         bubbleSize: safeBubbleSize
       } as DataItem;
     });
-  }, [filteredData, selectedRange, showOnlyFavorites, favorites]);
+  }, [filteredData, selectedRange, showOnlyFavorites, favorites, searchQuery]);
 
   // Calculate bubble color based on risk and favorite status
   const calculateBubbleColor = (risk: number, isFavorite: boolean) => {

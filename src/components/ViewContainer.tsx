@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ViewType } from '../types';
-import BubbleChart from './BubbleChart2';
 import { BuySignalsPanel } from './BuySignalsPanel';
 import { Plus, SlidersHorizontal, X } from 'lucide-react';
 import { Strategy } from '../types';
 import MobileBubbleChart from './Bubblechart1';
 import { useData } from '../context/DataContext';
+import { MobileNavbar } from './MobileNavbar';
 
 interface ViewContainerProps {
   currentView: ViewType;
@@ -28,7 +28,8 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   const [selectedToken, setSelectedToken] = useState<'binance' | 'btcc' | 'ai'>('binance');
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilterStrategyId, setActiveFilterStrategyId] = useState<string | null>(null);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [filterOptions, setFilterOptions] = useState({
     skipTraps: filters.skipPotentialTraps || false,
     avoidHype: filters.avoidOverhypedTokens || false,
@@ -216,7 +217,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
               {renderTokenSelector()}
             </div>
             <div className="flex-1">
-              <MobileBubbleChart selectedRange={selectedRange} />
+              <MobileBubbleChart selectedRange={selectedRange} searchQuery={searchQuery} />
             </div>
           </div>
         );
@@ -228,7 +229,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
               {renderStrategyButtons()}
             </div>
             <div className="flex-1">
-              <MobileBubbleChart selectedRange={selectedRange} />
+              <MobileBubbleChart selectedRange={selectedRange} searchQuery={searchQuery} />
             </div>
           </div>
         );
@@ -247,7 +248,16 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
 
   return (
     <div className="min-h-screen">
+      <MobileNavbar
+      onViewChange={(view: ViewType) => setCurrentToken(view)}
+      currentView={currentView}
+      selectedRange={selectedRange}
+      onRangeChange={setSelectedRange}
+      onSearchChange={(query: string) => setSearchQuery(query)} // Pass the handler with type
+      />
       {renderView()}
     </div>
   );
 };
+
+export default ViewContainer;
