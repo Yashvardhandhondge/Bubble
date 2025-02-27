@@ -1,7 +1,25 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, AlertTriangle } from 'lucide-react';
 import { SignalData } from '../types';
-// import TradingView from './TradingView';
+// Remove the invalid import for TradingView asset
+// Replace it with a constant URL from public folder
+const tradingViewImgURL = "/Trading.png";
+
+// Add this helper function
+const computeElapsedTime = (dateString: string): string => {
+  const past = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - past.getTime();
+  const diffMins = Math.floor(diffMs / (60 * 1000));
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  const remainingMins = diffMins % 60;
+  if (diffHours < 24) return `${diffHours}h ${remainingMins}m ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  const remainingHours = diffHours % 24;
+  return `${diffDays}d ${remainingHours}h ago`;
+};
 
 interface PremiumSignalCardProps {
   signal: SignalData;
@@ -10,9 +28,11 @@ interface PremiumSignalCardProps {
 export const PremiumSignalCard: React.FC<PremiumSignalCardProps> = ({ signal }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const extractPrice = (description: string): string => {
+  // Updated function to handle undefined description and fallback to signal.price
+  const extractPrice = (description?: string): string => {
+    if (!description) return String(signal.price);
     const priceMatch = description.match(/\$(\d+(?:\.\d+)?)/);
-    return priceMatch ? priceMatch[1] : '';
+    return priceMatch ? priceMatch[1] : String(signal.price);
   };
 
   return (
@@ -32,7 +52,8 @@ export const PremiumSignalCard: React.FC<PremiumSignalCardProps> = ({ signal }) 
           {signal.symbol}
         </span>
         <div className="flex items-center gap-1">
-          <span className="text-orange-400 text-sm">15m ago</span> {/* Removed flex and mb-1 */}
+          {/* Replace static text with computed elapsed time */}
+          <span className="text-orange-400 text-sm">{computeElapsedTime(signal.date)}</span>
           <div className="text-gray-400">
             {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </div>
@@ -47,13 +68,21 @@ export const PremiumSignalCard: React.FC<PremiumSignalCardProps> = ({ signal }) 
         </div>
 
         {/* Stats with consistent spacing */}
-        <div className="flex items-center justify-between gap-3 text-sm mb-2"> {/* Reduced gaps */}
+        <div className="flex items-center justify-between gap-3 text-sm mb-2">
           <div className="flex items-center gap-1 text-gray-300">
-            <span>Dangers: <span className='text-white'>{signal.risks.length}/4</span> </span>
+            <span>
+              Warnings: <span className='text-white'>{signal.warnings?.length ?? signal.warning_count ?? 0}/4</span>
+            </span>
             <AlertTriangle className="w-4 h-4 text-yellow-500" />
           </div>
-          <div className="flex items-center gap-1 ">
-            <span className='text-gray-400'>Risk: <span className='text-white'>44/100</span></span>
+          <div className="flex items-center gap-1">
+            <span className='text-gray-400'>
+              Risk: <span className='text-white'>{signal.risk}</span>
+            </span>
+            {/* Render TradingView asset as a widget link */}
+            <a href={signal.link} target="_blank" rel="noopener noreferrer">
+              <img src={tradingViewImgURL} alt="TradingView Widget" className="w-4 h-4 ml-2 rounded-full" />
+            </a>
           </div>
         </div>
 

@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import * as d3 from 'd3';
 import { useData } from '../context/DataContext';
+import { useFavorites } from '../context/FavoritesContext';
 import './bubble.css';
 
 import Modal from './Modal';
 import TokenWidget from './TokenWidget';
+
 
 const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewport height
 const PADDING_TOP = 74;
@@ -41,6 +43,7 @@ interface BitcoinRiskChartProps {
 
 const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedRange, isCollapsed }) => {
   const { filteredData, loading, filters } = useData();
+  const { favorites, showOnlyFavorites } = useFavorites();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const simulationRef = useRef<d3.Simulation<DataItem, undefined> | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -49,7 +52,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
   // Debug filtered data
   useEffect(() => {
-    console.log("Filtered data updated:", filteredData.length, filteredData[0]);
+    // console.log("Filtered data updated:", filteredData.length, filteredData[0]);
   }, [filteredData]);
 
   // Dynamic container width adjustment
@@ -92,7 +95,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   // Filter and process data
   const rangeFilteredData = useMemo<DataItem[]>(() => {
     if (!filteredData?.length) {
-      console.log('No filtered data available');
+      // console.log('No filtered data available');
       return [];
     }
     
@@ -100,31 +103,39 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       ? selectedRange.split(" - ").map(n => parseInt(n))
       : [1, 100];
 
-    console.log(`Processing range ${start}-${end} from ${filteredData.length} items`);
+    // console.log(`Processing range ${start}-${end} from ${filteredData.length} items`);
     
-    const slicedData = filteredData
-      .slice(start - 1, end)
-      .map(item => {
-        // Use safeBubbleSize: if item.bubbleSize is invalid, assign random default.
-        const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
-          ? Number(item.bubbleSize)
-          : Math.random() * 0.5 + 0.5;
-        return {
-          ...item,
-          risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
-          // Calculate radius using safeBubbleSize (multiplier kept as 35)
-          radius: Math.max(
-            BUBBLE_MIN_SIZE,
-            Math.min(BUBBLE_MAX_SIZE, safeBubbleSize * 35)
-          ),
-          x: containerWidth / 2 + (Math.random() - 0.5) * 100,
-          y: getRiskBand((item.risk !== null && !isNaN(Number(item.risk)))
-                ? Number(item.risk)
-                : 50)
-        };
-      });
+    // First apply the base filtering
+    let dataToProcess = filteredData.slice(start - 1, end);
+    
+    // Then apply favorites filter if needed
+    if (showOnlyFavorites) {
+      dataToProcess = dataToProcess.filter(item => 
+        item.symbol && favorites.includes(item.symbol)
+      );
+    }
+    
+    const slicedData = dataToProcess.map(item => {
+      // Use safeBubbleSize: if item.bubbleSize is invalid, assign random default.
+      const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
+        ? Number(item.bubbleSize)
+        : Math.random() * 0.5 + 0.5;
+      return {
+        ...item,
+        risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
+        // Calculate radius using safeBubbleSize (multiplier kept as 35)
+        radius: Math.max(
+          BUBBLE_MIN_SIZE,
+          Math.min(BUBBLE_MAX_SIZE, safeBubbleSize * 35)
+        ),
+        x: containerWidth / 2 + (Math.random() - 0.5) * 100,
+        y: getRiskBand((item.risk !== null && !isNaN(Number(item.risk)))
+              ? Number(item.risk)
+              : 50)
+      };
+    });
       
-    console.log(`Processed ${slicedData.length} items for display`);
+    // console.log(`Processed ${slicedData.length} items for display`);
     // Validate data for any NaN
     const nanItems = slicedData.filter(item => 
       isNaN(item.x) || isNaN(item.y) || isNaN(item.radius));
@@ -133,19 +144,30 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     }
     
     return slicedData;
-  }, [filteredData, selectedRange, containerWidth]);
+  }, [filteredData, selectedRange, containerWidth, showOnlyFavorites, favorites]);
 
   // Replace the previous calculateBubbleColor function with the following:
-  const calculateBubbleColor = (risk: number) => {
+  const calculateBubbleColor = (risk: number, isFavorite: boolean) => {
     // Default to 50 if risk is NaN, null or undefined
     const safeRisk = (risk === null || risk === undefined || isNaN(risk)) ? 50 : risk;
     
     const clampedRisk = Math.max(10, Math.min(100, safeRisk));
     const t = (clampedRisk - 10) / 90; // normalize risk between 0 and 1
-    // Smoothly interpolate from green (low risk) to red (high risk)
+    
+    // If it's a favorite, use gold colors
+    if (isFavorite) {
+      return {
+        border: "rgba(255, 215, 0, 0.95)", // Gold border
+        background: "rgba(255, 215, 0, 0.35)", // Light gold background
+        gradient: "rgba(255, 215, 0, 0.6)" // Gold gradient
+      };
+    }
+    
+    // Otherwise use the regular color scale
     const borderColor = d3.interpolateRgb("rgba(30,255,30,0.9)", "rgba(255,0,0,0.95)")(t);
     const backgroundColor = d3.interpolateRgb("rgba(30,255,30,0.35)", "rgba(255,0,0,0.4)")(t);
     const gradientColor = d3.interpolateRgb("rgba(30,255,30,0.5)", "rgba(255,0,0,0.6)")(t);
+    
     return {
       border: borderColor,
       background: backgroundColor,
@@ -156,7 +178,8 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   // Update createBubbleHTML to enhance text visibility
   const createBubbleHTML = (d: DataItem) => {
     const safeRisk = (d.risk === null || d.risk === undefined || isNaN(Number(d.risk))) ? 50 : Number(d.risk);
-    const colors = calculateBubbleColor(safeRisk);
+    const isFav = d.symbol ? favorites.includes(d.symbol) : false;
+    const colors = calculateBubbleColor(safeRisk, isFav);
     const iconSize = `${d.radius * 0.6}px`;
     const symbolFontSize = `${d.radius * 0.40}px`; // Slightly larger
     const percentFontSize = `${d.radius * 0.3}px`; // Slightly larger
@@ -256,7 +279,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       };
     });
 
-    console.log(`Rendering ${validData.length} bubbles`);
+    // console.log(`Rendering ${validData.length} bubbles`);
 
     const calculateStrength = () => {
       const baseStrength = isCollapsed ? 0.07 : 0.12;
@@ -314,7 +337,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
     return () => {
       simulation.stop();
     };
-  }, [rangeFilteredData, containerWidth, onBubbleClick, selectedRange, isCollapsed]);
+  }, [rangeFilteredData, containerWidth, onBubbleClick, selectedRange, isCollapsed, favorites]);
 
   if (loading) {
     return (
@@ -327,13 +350,15 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   if (!loading && (!filteredData.length || !rangeFilteredData.length)) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-white">No data available for the selected filters</p>
+        <p className="text-white">
+          {showOnlyFavorites && rangeFilteredData.length === 0 
+            ? "No favorites found. Add some by clicking the star icon in a token's details." 
+            : "No data available for the selected filters"}
+        </p>
       </div>
     );
   }
   
-  
-
   // Create grid lines with equal spacing
   const gridLines = [
     { range: '90', position: 0 },    // 90% risk

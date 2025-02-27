@@ -6,8 +6,8 @@ import WalletConnect from './WalletConnect';
 import { useAccount } from 'wagmi';
 import { SwapCard } from './Swap/SwapInterface/SwapCard';
 import { ErrorBoundary } from './ErrorBoundary';
-
-
+import { useFavorites } from '../context/FavoritesContext';
+import { Star } from 'lucide-react';
 interface Filters {
 	skipPotentialTraps: boolean;
 	avoidOverhypedTokens: boolean;
@@ -38,6 +38,7 @@ const Navbar: React.FC<NavbarProps> = ({
 	onTokenSourceChange
 }) => {
 	const { filters, updateFilters, setCurrentToken } = useData();
+	const { showOnlyFavorites, setShowOnlyFavorites } = useFavorites();
 	const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
 	const [showRankDropdown, setShowRankDropdown] = useState<boolean>(false);
 	const [showStrategySelector, setShowStrategySelector] = useState<boolean>(false);
@@ -155,6 +156,10 @@ const Navbar: React.FC<NavbarProps> = ({
 			marketCapFilter: newFilterOptions.minMarketCap
 		};
 		updateFilters(contextFilters);
+	};
+
+	const toggleFavoritesFilter = () => {
+		setShowOnlyFavorites(!showOnlyFavorites);
 	};
 
 	return (
@@ -293,9 +298,12 @@ const Navbar: React.FC<NavbarProps> = ({
 						))}
 					</div>
 				</div>
+				
 				<div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0 lg:ml-8">
 					<span className="text-white whitespace-nowrap">Tokens:</span>
 					<div className="flex flex-wrap gap-2">
+						{/* Insert favorites toggle button as the first item */}
+						
 						{allTokens.map(token => (
 							<button
 								key={token.id}
@@ -304,13 +312,28 @@ const Navbar: React.FC<NavbarProps> = ({
 									setSelectedTokenType(token.type);
 									onTokenSourceChange?.(token.type);
 								}}
-								className={`px-4 py-1.5 rounded-full transition-colors ${selectedTokenType === token.type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+								className={`px-4 py-1.5 rounded-full transition-colors ${
+									selectedTokenType === token.type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+								}`}
 							>
 								{token.name}
 							</button>
 						))}
 					</div>
 				</div>
+				{address && (
+							<button
+								onClick={toggleFavoritesFilter}
+								title={showOnlyFavorites ? "Show all tokens" : "Show only favorites"}
+								className="p-2 transition-colors"
+							>
+								<Star
+									size={20}
+									fill={showOnlyFavorites ? "blue" : "none"}
+									className={showOnlyFavorites ? "text-blue-500" : "text-gray-300 hover:text-blue-500"}
+								/>
+							</button>
+						)}
 				{showStrategySelector && (
 					<div className="absolute left-72 top-36 w-48 bg-gray-800 rounded-lg shadow-lg z-50">
 						<div className="p-2">
@@ -327,6 +350,7 @@ const Navbar: React.FC<NavbarProps> = ({
 					</div>
 				)}
 			</div>
+			
 			<div 
 				className={`fixed inset-0 z-50 transition-all duration-300 ${showDEX ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
 			>

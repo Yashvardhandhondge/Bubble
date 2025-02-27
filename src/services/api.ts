@@ -10,24 +10,31 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and log outgoing requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log('Outgoing request to:', config.url);
   return config;
 });
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and log incoming responses
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('Incoming response from:', response.config.url);
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('token');
-      window.location.href = '/';
+      // Prevent redirect loop by checking if not already on the login page
+      if (window.location.pathname !== '/') {
+        localStorage.removeItem('token');
+        window.location.href = '/';
+      }
     }
+    console.error('Error response from:', error.config?.url, error);
     return Promise.reject(error);
   }
 );
@@ -37,11 +44,14 @@ export const AuthService = {
   register: async (walletAddress: string) => {
     try {
       const response = await api.post('/auth/register', { walletAddress });
-      
+      console.log('Register response received:', response.data);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
+        // Delay subsequent calls to ensure token is registered
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        console.warn('No token found in response:', response.data);
       }
-      
       return {
         success: true,
         data: response.data,
@@ -56,7 +66,7 @@ export const AuthService = {
       };
     }
   },
-
+  
   // Get current user profile
   getProfile: async () => {
     try {
@@ -73,7 +83,7 @@ export const AuthService = {
       };
     }
   },
-
+  
   // Logout
   logout: () => {
     localStorage.removeItem('token');
@@ -82,13 +92,10 @@ export const AuthService = {
 
 export const handleApiError = (error: any) => {
   if (error.response) {
-    // Server responded with error
     return error.response.data.message || 'An error occurred';
   } else if (error.request) {
-    // Request made but no response
     return 'No response from server';
   } else {
-    // Error setting up request
     return 'Error making request';
   }
 };
