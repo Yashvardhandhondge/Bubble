@@ -1,16 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Menu, ChevronDown } from 'lucide-react';
+import { Search, Menu, ChevronDown, SlidersHorizontal, X, Star } from 'lucide-react';
 import { ViewType } from '../types';
 import Bubbles from '../../public/Bubbles';
 import Settings from "../../public/Settings";
 import { SwapCard } from './Swap/SwapInterface/SwapCard';
+import { useData } from '../context/DataContext';
+import { useFavorites } from '../context/FavoritesContext';
+import { useAccount } from 'wagmi';
 
 interface MobileNavbarProps {
   onViewChange: (view: ViewType) => void;
   currentView: ViewType;
   selectedRange: string;
   onRangeChange: (range: string) => void;
-  onSearchChange: (query: string) => void; // Add this prop
+  onSearchChange: (query: string) => void;
+  showFilters: boolean;
+  activeFilterStrategyId: string | null;
+  handleFilterClick: (strategyId: string, event: React.MouseEvent) => void;
+  handleFilterOptionClick: (filterKey: keyof Filters, value: boolean) => void;
+  filterOptions: Filters;
+}
+
+interface Filters {
+  skipTraps: boolean;
+  avoidHype: boolean;
+  minMarketCap: boolean;
 }
 
 export const MobileNavbar: React.FC<MobileNavbarProps> = ({ 
@@ -18,11 +32,20 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   currentView,
   selectedRange,
   onRangeChange,
-  onSearchChange // Add this prop
+  onSearchChange,
+  showFilters,
+  activeFilterStrategyId,
+  handleFilterClick,
+  handleFilterOptionClick,
+  filterOptions
 }) => {
+  const { isFavorite, addFavorite, removeFavorite, showOnlyFavorites, setShowOnlyFavorites } = useFavorites();
+  const { isConnected } = useAccount();
   const [searchQuery, setSearchQuery] = useState('');
   const [showRangeDropdown, setShowRangeDropdown] = useState(false);
   const [showDEX, setShowDEX] = useState(false);
+  const [localShowFilters, setLocalShowFilters] = useState(showFilters);
+  const [localActiveFilterStrategyId, setLocalActiveFilterStrategyId] = useState<string | null>(activeFilterStrategyId);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Available range options
@@ -56,7 +79,33 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    onSearchChange(e.target.value); // Call the prop function
+    onSearchChange(e.target.value);
+  };
+
+  const handleLocalFilterClick = (strategyId: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (localActiveFilterStrategyId === strategyId) {
+      setLocalShowFilters(false);
+      setLocalActiveFilterStrategyId(null);
+    } else {
+      setLocalShowFilters(true);
+      setLocalActiveFilterStrategyId(strategyId);
+    }
+  };
+
+  const toggleFavorite = async (symbol: string) => {
+    if (!isConnected || !symbol) return;
+    
+    if (isFavorite(symbol)) {
+      await removeFavorite(symbol);
+    } else {
+      await addFavorite(symbol);
+    }
+  };
+
+  const toggleFavoritesFilter = () => {
+    setShowOnlyFavorites(!showOnlyFavorites);
   };
 
   return (
@@ -75,10 +124,18 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
               placeholder="Search Crypto Currencies"
               className="w-full h-10 bg-gray-800 text-white pl-10 pr-4 rounded-lg focus:outline-none"
               value={searchQuery}
-              onChange={handleSearchChange} // Update this line
+              onChange={handleSearchChange}
             />
           </div>
         </div>
+        {(currentView === 'chart' || currentView === 'settings') && (
+          <button 
+            onClick={toggleFavoritesFilter}
+            className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? 'text-yellow-400' : 'text-gray-400'}`}
+          >
+            <Star />
+          </button>
+        )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
@@ -128,7 +185,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           </button>
           <button 
             onClick={() => onViewChange('settings')}
-            className={`flex items-center justify-center w-[60px] h-[30x] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
           >
             <Settings />
           </button>
@@ -144,6 +201,38 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
       {showDEX && (
         <div className="fixed inset-0 z-50 bg-black/50">
           <SwapCard onClose={() => setShowDEX(false)} />
+        </div>
+      )}
+
+      {localShowFilters && (
+        <div className="fixed bottom-16 left-0 right-0 bg-gray-800 rounded-lg shadow-lg z-50 filters-dropdown">
+          <div className="p-3 space-y-3">
+            <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+              <h3 className="text-white font-medium">Filter Options</h3>
+              <button onClick={() => { setLocalShowFilters(false); setLocalActiveFilterStrategyId(null); }} className="text-gray-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                <input type="checkbox" checked={filterOptions.skipTraps} onChange={(e) => handleFilterOptionClick('skipTraps', e.target.checked)} className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
+                Skip Potential Traps
+              </label>
+              <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                <input type="checkbox" checked={filterOptions.avoidHype} onChange={(e) => handleFilterOptionClick('avoidHype', e.target.checked)} className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
+                Avoid Overhyped Tokens
+              </label>
+              <label className="flex items-center gap-2 text-gray-300 hover:text-white">
+                <input type="checkbox" checked={filterOptions.minMarketCap} onChange={(e) => handleFilterOptionClick('minMarketCap', e.target.checked)} className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
+                Min Market Cap Filter
+              </label>
+            </div>
+            <div className="pt-2 border-t border-gray-700 flex justify-end">
+              <button onClick={() => { setLocalShowFilters(false); setLocalActiveFilterStrategyId(null); }} className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">
+                Apply
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
