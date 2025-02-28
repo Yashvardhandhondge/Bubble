@@ -8,17 +8,16 @@ import { useData } from '../context/DataContext';
 import { MobileNavbar } from './MobileNavbar';
 
 interface ViewContainerProps {
-  currentView: ViewType;
   selectedRange: string;
   setSelectedRange: (range: string) => void;
 }
 
 export const ViewContainer: React.FC<ViewContainerProps> = ({
-  currentView,
   selectedRange,
   setSelectedRange
 }) => {
   const { setCurrentToken, filters, updateFilters } = useData();
+  const [currentView, setCurrentView] = useState<ViewType>('chart'); // Define the state for currentView
   const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
     { id: '1', name: 'Short-Term', type: 'short', isActive: true },
     { id: '2', name: 'Long-Term', type: 'long', isActive: false },
@@ -141,6 +140,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-300'
               }`}
+              style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }} // Adjust button size
             >
               {strategy.name}
               {strategy.type === 'short' && (
@@ -249,11 +249,16 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
   return (
     <div className="min-h-screen">
       <MobileNavbar
-      onViewChange={(view: ViewType) => setCurrentToken(view)}
-      currentView={currentView}
-      selectedRange={selectedRange}
-      onRangeChange={setSelectedRange}
-      onSearchChange={(query: string) => setSearchQuery(query)} // Pass the handler with type
+        onViewChange={(view: ViewType) => setCurrentView(view)} // Update this line
+        currentView={currentView}
+        selectedRange={selectedRange}
+        onRangeChange={setSelectedRange}
+        onSearchChange={(query: string) => setSearchQuery(query)} // Pass the handler with type
+        showFilters={showFilters}
+        activeFilterStrategyId={activeFilterStrategyId}
+        handleFilterClick={handleFilterClick}
+        handleFilterOptionClick={handleFilterOptionClick}
+        filterOptions={filterOptions}
       />
       {renderView()}
     </div>
