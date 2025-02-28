@@ -254,6 +254,11 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
         selectedRange={selectedRange}
         onRangeChange={setSelectedRange}
         onSearchChange={(query: string) => setSearchQuery(query)} // Pass the handler with type
+        showFilters={showFilters}
+        activeFilterStrategyId={activeFilterStrategyId}
+        handleFilterClick={handleFilterClick}
+        handleFilterOptionClick={handleFilterOptionClick}
+        filterOptions={filterOptions}
       />
       {renderView()}
     </div>
