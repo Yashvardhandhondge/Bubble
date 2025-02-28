@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Menu, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Menu, ChevronDown, SlidersHorizontal, X, Star } from 'lucide-react';
 import { ViewType } from '../types';
 import Bubbles from '../../public/Bubbles';
 import Settings from "../../public/Settings";
 import { SwapCard } from './Swap/SwapInterface/SwapCard';
 import { useData } from '../context/DataContext';
+import { useFavorites } from '../context/FavoritesContext';
+import { useAccount } from 'wagmi';
 
 interface MobileNavbarProps {
   onViewChange: (view: ViewType) => void;
@@ -37,6 +39,8 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   handleFilterOptionClick,
   filterOptions
 }) => {
+  const { isFavorite, addFavorite, removeFavorite, showOnlyFavorites, setShowOnlyFavorites } = useFavorites();
+  const { isConnected } = useAccount();
   const [searchQuery, setSearchQuery] = useState('');
   const [showRangeDropdown, setShowRangeDropdown] = useState(false);
   const [showDEX, setShowDEX] = useState(false);
@@ -88,6 +92,20 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
       setLocalShowFilters(true);
       setLocalActiveFilterStrategyId(strategyId);
     }
+  };
+
+  const toggleFavorite = async (symbol: string) => {
+    if (!isConnected || !symbol) return;
+    
+    if (isFavorite(symbol)) {
+      await removeFavorite(symbol);
+    } else {
+      await addFavorite(symbol);
+    }
+  };
+
+  const toggleFavoritesFilter = () => {
+    setShowOnlyFavorites(!showOnlyFavorites);
   };
 
   return (
@@ -170,6 +188,12 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             <Menu />
           </button>
         </div>
+        <button 
+          onClick={toggleFavoritesFilter}
+          className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? 'text-yellow-400' : 'text-gray-400'}`}
+        >
+          <Star />
+        </button>
       </div>
 
       {showDEX && (
