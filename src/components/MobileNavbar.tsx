@@ -128,7 +128,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           </button>
           <button 
             onClick={() => onViewChange('settings')}
-            className={`flex items-center justify-center w-[60px] h-[30x] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
           >
             <Settings />
           </button>
