@@ -142,19 +142,6 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
           </button>
         </div>
       ))}
-      {isConnected && (
-        <button
-          onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-          className="p-2 text-white"
-          title={showOnlyFavorites ? "Show all tokens" : "Show only favorites"}
-        >
-          <Star 
-            size={18} 
-            fill={showOnlyFavorites ? "blue" : "none"} 
-            color={showOnlyFavorites ? "blue" : "white"} 
-          />
-        </button>
-      )}
     </div>
   );
 
@@ -244,20 +231,20 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
             )}
           </div>
         ))}
+        {isConnected && (
+          <button
+            onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+            className="p-2 text-white"
+            title={showOnlyFavorites ? "Show all strategies" : "Show only favorites"}
+          >
+            <Star 
+              size={18} 
+              fill={showOnlyFavorites ? "blue" : "none"} 
+              color={showOnlyFavorites ? "blue" : "white"} 
+            />
+          </button>
+        )}
       </div>
-      {isConnected && (
-        <button
-          onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-          className="p-2 text-white"
-          title={showOnlyFavorites ? "Show all strategies" : "Show only favorites"}
-        >
-          <Star 
-            size={18} 
-            fill={showOnlyFavorites ? "blue" : "none"} 
-            color={showOnlyFavorites ? "blue" : "white"} 
-          />
-        </button>
-      )}
     </div>
   );
 

@@ -128,6 +128,14 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             />
           </div>
         </div>
+        {(currentView === 'chart' || currentView === 'settings') && (
+          <button 
+            onClick={toggleFavoritesFilter}
+            className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? 'text-yellow-400' : 'text-gray-400'}`}
+          >
+            <Star />
+          </button>
+        )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
@@ -188,12 +196,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             <Menu />
           </button>
         </div>
-        <button 
-          onClick={toggleFavoritesFilter}
-          className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? 'text-yellow-400' : 'text-gray-400'}`}
-        >
-          <Star />
-        </button>
       </div>
 
       {showDEX && (
@@ -202,7 +204,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         </div>
       )}
 
-      {localShowFilters && localActiveFilterStrategyId === '1' && (
+      {localShowFilters && (
         <div className="fixed bottom-16 left-0 right-0 bg-gray-800 rounded-lg shadow-lg z-50 filters-dropdown">
           <div className="p-3 space-y-3">
             <div className="flex justify-between items-center border-b border-gray-700 pb-2">
