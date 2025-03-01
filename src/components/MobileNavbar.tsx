@@ -56,6 +56,17 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     "301 - 400",
   ];
 
+  // Add reverseRange helper:
+  const reverseRange = (range: string): string => {
+    switch(range) {
+      case "Top 100": return "301 - 400";
+      case "101 - 200": return "200 - 300";
+      case "200 - 300": return "100 - 200";
+      case "301 - 400": return "Top 100";
+      default: return range;
+    }
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -72,8 +83,9 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     setShowRangeDropdown(!showRangeDropdown);
   };
 
+  // Modify handleRangeSelect:
   const handleRangeSelect = (range: string) => {
-    onRangeChange(range);
+    onRangeChange(reverseRange(range));
     setShowRangeDropdown(false);
   };
 

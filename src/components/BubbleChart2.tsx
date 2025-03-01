@@ -5,38 +5,43 @@ import { useData } from '../context/DataContext';
 import { useFavorites } from '../context/FavoritesContext';
 import './bubble.css';
 
-import Modal from './Modal';
 import TokenWidget from './TokenWidget';
 
 
-const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 85% of viewport height
+const CONTAINER_HEIGHT = window.innerHeight * 0.78; // Adjusted to 78% of viewport height
 const PADDING_TOP = 74;
 const PADDING_BOTTOM = 60;
 const EFFECTIVE_HEIGHT = CONTAINER_HEIGHT - (PADDING_TOP + PADDING_BOTTOM); // Reduced padding to extend chart
-const BUBBLE_MIN_SIZE = 15; // Increased from 15
-const BUBBLE_MAX_SIZE = 25; // Increased from 25
+const BUBBLE_MIN_SIZE = 15;
+const BUBBLE_MAX_SIZE = 25;
 const BUBBLE_PADDING = 2; 
 
 
-interface DataItem extends d3.SimulationNodeDatum {
+interface TokenData {
   risk?: number;
   bubbleSize?: number;
   volume?: number;
   symbol?: string;
   icon?: string;
-  x: number;
-  y: number;
-  radius: number;
   price?: number;
+  chainId?: string;
+  tokenAddress?: string;
   moralisLink?: string;
   warnings?: string[];
   "1mChange"?: number;
   "2wChange"?: number;
   "3mChange"?: number;
+  name?: string;
+}
+
+interface DataItem extends d3.SimulationNodeDatum, TokenData {
+  x: number;
+  y: number;
+  radius: number;
 }
 
 interface BitcoinRiskChartProps {
-  onBubbleClick: (data: DataItem) => void;
+  onBubbleClick?: (data: DataItem) => void;
   selectedRange: string;
   isCollapsed?: boolean;
 }
@@ -47,13 +52,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   const containerRef = useRef<HTMLDivElement | null>(null);
   const simulationRef = useRef<d3.Simulation<DataItem, undefined> | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [showWidget, setShowWidget] = useState(false); // State to conditionally render Wget
   const [selectedBubble, setSelectedBubble] = useState<DataItem | null>(null);
-
-  // Debug filtered data
-  useEffect(() => {
-    // console.log("Filtered data updated:", filteredData.length, filteredData[0]);
-  }, [filteredData]);
 
   // Dynamic container width adjustment
   const updateContainerWidth = useCallback(() => {
@@ -95,15 +94,12 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
   // Filter and process data
   const rangeFilteredData = useMemo<DataItem[]>(() => {
     if (!filteredData?.length) {
-      // console.log('No filtered data available');
       return [];
     }
     
     const [start, end] = selectedRange !== "Top 100" 
       ? selectedRange.split(" - ").map(n => parseInt(n))
       : [1, 100];
-
-    // console.log(`Processing range ${start}-${end} from ${filteredData.length} items`);
     
     // First apply the base filtering
     let dataToProcess = filteredData.slice(start - 1, end);
@@ -135,7 +131,6 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       };
     });
       
-    // console.log(`Processed ${slicedData.length} items for display`);
     // Validate data for any NaN
     const nanItems = slicedData.filter(item => 
       isNaN(item.x) || isNaN(item.y) || isNaN(item.radius));
@@ -202,10 +197,10 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
                     alt="${d.symbol}" 
                     style="width: ${iconSize}; height: ${iconSize}; object-fit: contain; margin-bottom: 4px;"
                     loading="lazy"
-                    onerror="this.onerror=null;this.src='/deafult.png';"
+                    onerror="this.onerror=null;this.src='/default.png';"
                   />`
                 : `<img 
-                    src="/deafult.png" 
+                    src="/default.png" 
                     alt="${d.symbol}" 
                     style="width: ${iconSize}; height: ${iconSize}; object-fit: contain; margin-bottom: 4px;"
                     loading="lazy"
@@ -242,8 +237,13 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
 
   const handleBubbleClick = (d: DataItem) => {
+    console.log("Bubble clicked:", d);
     setSelectedBubble(d);
-    // onBubbleClick(d);
+    
+    // Also call the parent handler if provided
+    if (onBubbleClick) {
+      onBubbleClick(d);
+    }
   };
 
   const handleCloseWidget = () => {
@@ -252,7 +252,6 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
   useEffect(() => {
     if (!containerRef.current || !rangeFilteredData.length || !containerWidth) {
-      console.warn("Missing container width or data", containerWidth, rangeFilteredData.length);
       return;
     }
     
@@ -278,8 +277,6 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
         radius: isNaN(d.radius) ? BUBBLE_MIN_SIZE : d.radius
       };
     });
-
-    // console.log(`Rendering ${validData.length} bubbles`);
 
     const calculateStrength = () => {
       const baseStrength = isCollapsed ? 0.07 : 0.12;
@@ -429,14 +426,16 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
               width: '100%',
               paddingTop: `${PADDING_TOP}px`,
               paddingBottom: `${PADDING_BOTTOM}px`,
-              zIndex: 10  // Add this
+              zIndex: 10
             }}
           />
         </div>
       </div>
-      {selectedBubble && (
+      
+      {/* Render the TokenWidget when a bubble is selected */}
+      {selectedBubble && selectedBubble.symbol && (
         <TokenWidget 
-          tokenData={selectedBubble} 
+          tokenData={selectedBubble as TokenData} 
           onClose={handleCloseWidget}
         />
       )}

@@ -109,10 +109,20 @@ const Navbar: React.FC<NavbarProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showFilters]);
 
+    const reverseRange = (range: string): string => {
+        switch(range) {
+          case "Top 100": return "301 - 400";
+          case "101 - 200": return "200 - 300";
+          case "200 - 300": return "100 - 200";
+          case "301 - 400": return "Top 100";
+          default: return range;
+        }
+      };
+
     const handleRangeChange = (range: string) => {
         setSelectedRange(range);
         setShowRankDropdown(false);
-        onRangeChange(range);
+        onRangeChange(reverseRange(range));
     };
 
     const toggleStrategy = (event: React.MouseEvent, strategy: Strategy) => {
