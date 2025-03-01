@@ -114,8 +114,10 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
       return {
         ...item,
         risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
-        // Use safe value to determine bubble radius.
-        bubbleSize: safeBubbleSize
+        bubbleSize: safeBubbleSize,
+        x: 0,
+        y: 0,
+        radius: 0
       } as DataItem;
     });
   }, [filteredData, selectedRange, showOnlyFavorites, favorites, searchQuery]);

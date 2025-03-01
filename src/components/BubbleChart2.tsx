@@ -237,13 +237,7 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
 
 
   const handleBubbleClick = (d: DataItem) => {
-    console.log("Bubble clicked:", d);
     setSelectedBubble(d);
-    
-    // Also call the parent handler if provided
-    if (onBubbleClick) {
-      onBubbleClick(d);
-    }
   };
 
   const handleCloseWidget = () => {
@@ -432,12 +426,12 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
         </div>
       </div>
       
-      {/* Render the TokenWidget when a bubble is selected */}
-      {selectedBubble && selectedBubble.symbol && (
+
+        {selectedBubble  && (
         <TokenWidget 
-          tokenData={selectedBubble as TokenData} 
-          onClose={handleCloseWidget}
-        />
+        tokenData={selectedBubble} 
+        onClose={handleCloseWidget}
+      />
       )}
     </>
   );
