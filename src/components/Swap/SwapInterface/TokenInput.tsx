@@ -26,7 +26,7 @@ export const TokenInput: React.FC<TokenInputProps> = ({
     <div className="p-4 bg-white rounded-lg shadow">
       <div className="flex justify-between mb-2">
         <label className="text-sm font-medium text-gray-700">{label}</label>
-        {balance && (
+        {balance !== undefined && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span>Balance: {balance}</span>
             {onMaxClick && (

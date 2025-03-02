@@ -3,11 +3,11 @@ import { X, Star } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAccount } from 'wagmi';
 
-const TokenWidget = ({ tokenData, onClose }) => {
+const TokenWidget = ({ tokenData, onClose }:any) => {
     const { isFavorite, addFavorite, removeFavorite } = useFavorites();
     const { isConnected } = useAccount();
     
-    const toggleFavorite = async (e) => {
+    const toggleFavorite = async (e:any) => {
         e.stopPropagation();
         
         if (!isConnected || !tokenData?.symbol) return;
@@ -57,7 +57,7 @@ const TokenWidget = ({ tokenData, onClose }) => {
     }, [tokenData]);
     
     // Format percentages
-    const formatPercentage = (value) => {
+    const formatPercentage = (value:any) => {
         if (value === undefined || value === null) return 'N/A';
         return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
     };
@@ -73,9 +73,10 @@ const TokenWidget = ({ tokenData, onClose }) => {
                                 src={tokenData.icon} 
                                 alt={tokenData.symbol || "Token"} 
                                 className="w-8 h-8 rounded-full"
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = '/default.png';
+                                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                    const img = e.target as HTMLImageElement;
+                                    img.onerror = null;
+                                    img.src = '/default.png';
                                 }}
                             />
                         )}
