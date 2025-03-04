@@ -40,7 +40,7 @@ export const BuySignalsPanel: React.FC = () => {
       
       try {
         // Updated API endpoint
-        const registerResponse = await fetch('http://localhost:5000/api/auth/register', {
+        const registerResponse = await fetch('https://api.coinchart.fun/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export const BuySignalsPanel: React.FC = () => {
         localStorage.setItem('token', registerData.token);
         
         // Updated API endpoint for subscription check
-        const subscriptionResponse = await fetch('http://localhost:5000/api/auth/check-subscription', {
+        const subscriptionResponse = await fetch('https://api.coinchart.fun/api/auth/check-subscription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

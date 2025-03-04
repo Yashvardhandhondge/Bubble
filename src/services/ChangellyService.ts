@@ -2,11 +2,13 @@
 import axios from 'axios';
 import { Token } from '../types/api';
 
-const API_BASE_URL = '/api/defi-swap';
+
+const API_BASE_URL = 'https://api.coinchart.fun';
 const API_KEY = "57d18ecb-7f0e-456c-a085-2d43ec6e2b3f";
 const DEFAULT_GAS_PRICE = '3500000000'; 
 
-const api = axios.create({
+// Create a separate instance for Changelly requests
+const changellyApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Accept': 'application/json',
@@ -14,10 +16,28 @@ const api = axios.create({
   },
 });
 
+// Simple request logger (no auth)
+changellyApi.interceptors.request.use((config) => {
+  console.log('Outgoing Changelly request to:', config.url);
+  return config;
+});
+
+// Response interceptor
+changellyApi.interceptors.response.use(
+  (response) => {
+    console.log('Incoming Changelly response from:', response.config.url);
+    return response;
+  },
+  (error) => {
+    console.error('Error in Changelly response:', error.config?.url, error);
+    return Promise.reject(error);
+  }
+);
+
 export const changelly = {
   getTokenList: async (chainId: number) => {
     try {
-      const response = await api.get(`/api/tokens/${chainId}`);
+      const response = await changellyApi.get(`/api/defi-swap/api/tokens/${chainId}`);
       const tokensArray = Object.values(response.data)
         .filter((token: any) => token.is_active)
         .sort((a: any, b: any) => (a.priority || 0) - (b.priority || 0));
@@ -29,11 +49,11 @@ export const changelly = {
   },
 
   getBalances: (chainId: number, address: string) => 
-    api.get(`/api/balances/${chainId}/${address}`),
+    changellyApi.get(`/api/defi-swap/api/balances/${chainId}/${address}`),
 
   getGasPrices: async (chainId: number) => {
     try {
-      const response = await api.get(`/api/gasprices/${chainId}`);
+      const response = await changellyApi.get(`/api/defi-swap/api/gasprices/${chainId}`);
       return {
         data: {
           low: DEFAULT_GAS_PRICE,
@@ -61,7 +81,7 @@ export const changelly = {
     amount: string,
     slippage: number,
     gasPrice: string = DEFAULT_GAS_PRICE
-  ) => api.get(`/api/price/${chainId}/${fromToken}/${toToken}`, {
+  ) => changellyApi.get(`/api/defi-swap/api/price/${chainId}/${fromToken}/${toToken}`, {
     params: {
       amount,
       slippage,
@@ -78,13 +98,13 @@ export const changelly = {
     toToken: string,
     timeframe: '24H' | '1W' | '1Y' | 'AllTime',
     mode: string = 'SIMPLE_MODE'
-  ) => api.get(`/api/graph/${chainId}/${fromToken}/${toChainId}/${toToken}/${timeframe}/${mode}`),
+  ) => changellyApi.get(`/api/defi-swap/api/graph/${chainId}/${fromToken}/${toChainId}/${toToken}/${timeframe}/${mode}`),
 
   getAllowance: (chainId: number, tokenAddress: string, walletAddress: string) => 
-    api.get(`/api/allowance/${chainId}/${tokenAddress}/${walletAddress}`),
+    changellyApi.get(`/api/defi-swap/api/allowance/${chainId}/${tokenAddress}/${walletAddress}`),
 
   getApproveTransaction: (chainId: number, tokenAddress: string, gasPrice: string = DEFAULT_GAS_PRICE) => 
-    api.get(`/api/approve/${chainId}/${tokenAddress}/${gasPrice}`),
+    changellyApi.get(`/api/defi-swap/api/approve/${chainId}/${tokenAddress}/${gasPrice}`),
 
   getRoute: (
     chainId: number,
@@ -97,7 +117,7 @@ export const changelly = {
     recipientAddress?: string,
     toChainId?: string
   ) => {
-    return api.get(`/api/route/${chainId}/${fromToken}/${toToken}`, {
+    return changellyApi.get(`/api/defi-swap/api/route/${chainId}/${fromToken}/${toToken}`, {
       params: {
         amount,  
         slippage,
