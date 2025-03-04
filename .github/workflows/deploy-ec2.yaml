@@ -2,9 +2,9 @@ name: Deploy Node to AWS EC2
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main  # Runs only when pushing to 'test' branch
+  #push:
+  #  branches:
+  #    - main  # Runs only when pushing to 'test' branch
 
 env:
   AWS_REGION: eu-central-1
