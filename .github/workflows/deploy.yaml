@@ -35,7 +35,7 @@ jobs:
         run: |
           aws s3 sync dist/ s3://$S3_BUCKET
         env:
-          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: 🧹 Invalidate CloudFront Cache (Optional)
