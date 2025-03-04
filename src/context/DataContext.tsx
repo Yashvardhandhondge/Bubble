@@ -88,9 +88,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   };
 
   const getSignalsEndpoint = () => {
-    if (currentToken === "btcc") return "https://api.coinchart.fun/dex_signals/btcc";
-    if (currentToken === "cookiefun") return "https://api.coinchart.fun/dex_signals/cookiefun";
-    return "https://api.coinchart.fun/dex_signals/binance";
+    if (currentToken === "btcc") return "https://api.coinchart.fun/signals/btcc";
+    if (currentToken === "cookiefun") return "https://api.coinchart.fun/signals/cookiefun";
+    return "https://api.coinchart.fun/signals/binance";
   };
 
   useEffect(() => {
@@ -99,7 +99,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     const fetchAllData = async () => {
       try {
-        const risksResponse = await fetchWithRetry(`https://api.coinchart.fun/dex_risks/${currentToken}`);
+        const risksResponse = await fetchWithRetry(`https://api.coinchart.fun/risks/${currentToken}`);
         const signalsResponse = await fetchWithRetry(getSignalsEndpoint());
 
         if (!isSubscribed) return;
