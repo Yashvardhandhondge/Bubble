@@ -60,6 +60,16 @@
     transition: transform 0.2s ease-out !important;
 }
 
+.bubble, .bubble * {
+    cursor: pointer;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Optionally, if you want to target only the text inside the bubble: */
+.bubble span {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
 .bubble:hover {
     transform: translate(-50%, -50%) scale(1.1); /* Reduced hover scale */
     z-index: 100;

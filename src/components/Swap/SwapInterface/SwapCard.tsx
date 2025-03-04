@@ -5,6 +5,7 @@ import { TokenSelectModal } from './TokenSelectModal';
 import { ChainSelector } from '../ChainSelector/ChainSelector';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import { useTokenList } from '../../../hooks/useTokenList';
 import { SwapConfirmationDialog } from './SwapConfirmationDialog';
@@ -18,7 +19,7 @@ const TokenApprovalCard = ({
   onApprove, 
   onCancel,
   isApproving 
-}) => (
+}:any) => (
   <div className="p-4 bg-yellow-50 border border-yellow-400 rounded-lg mb-4">
     <h3 className="font-bold text-yellow-800">Token Approval Required</h3>
     <p className="my-2 text-yellow-700">
@@ -64,12 +65,19 @@ export const SwapCard: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
   const {
     isApproving,
-    needsApproval,   // New props
-    approvalData,    // New props
+    needsApproval,
     error: swapError,
     executeSwap,
     approveToken
   } = useSwapExecution();
+
+  const [approvalData, setApprovalData] = useState<{
+    tokenAddress: string;
+    spenderAddress: string;
+    amount: string;
+    chainId: number;
+    tokenSymbol: string;
+  } | null>(null);
 
   const [userBalances, setUserBalances] = useState<Record<string, string>>({});
 
@@ -223,7 +231,7 @@ export const SwapCard: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
               onChange={setFromAmount}
               onSelectToken={() => setSelectingToken('from')}
               selectedToken={fromToken}
-              balance={fromToken ? userBalances[fromToken.address] : undefined}
+              balance={fromToken ? (userBalances[fromToken.address] || '0') : undefined}
             />
 
             <div className="my-4 flex justify-center">
