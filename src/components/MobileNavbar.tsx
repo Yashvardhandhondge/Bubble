@@ -1,34 +1,48 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Search, Menu, ChevronDown, SlidersHorizontal, X, Star } from 'lucide-react';
-import { ViewType } from '../types';
-import Bubbles from '../../public/Bubbles';
-import Settings from "../../public/Settings";
-import { SwapCard } from './Swap/SwapInterface/SwapCard';
-import { useData } from '../context/DataContext';
-import { useFavorites } from '../context/FavoritesContext';
-import { useAccount } from 'wagmi';
+"use client"
+
+import type React from "react"
+import { useState, useRef, useEffect } from "react"
+import { Search, Menu, ChevronDown, SlidersHorizontal, X, Star } from "lucide-react"
+import type { ViewType } from "../types"
+import Bubbles from "../../public/Bubbles"
+import Settings from "../../public/Settings"
+import { SwapCard } from "./Swap/SwapInterface/SwapCard"
+import { useFavorites } from "../context/FavoritesContext"
+import { useAccount } from "wagmi"
 
 interface MobileNavbarProps {
-  onViewChange: (view: ViewType) => void;
-  currentView: ViewType;
-  selectedRange: string;
-  onRangeChange: (range: string) => void;
-  onSearchChange: (query: string) => void;
-  showFilters: boolean;
-  activeFilterStrategyId: string | null;
-  handleFilterClick: (strategyId: string, event: React.MouseEvent) => void;
-  handleFilterOptionClick: (filterKey: keyof Filters, value: boolean) => void;
-  filterOptions: Filters;
+  onViewChange: (view: ViewType) => void
+  currentView: ViewType
+  selectedRange: string
+  onRangeChange: (range: string) => void
+  onSearchChange: (query: string) => void
+  showFilters: boolean
+  activeFilterStrategyId: string | null
+  handleFilterClick: (strategyId: string, event: React.MouseEvent) => void
+  handleFilterOptionClick: (filterKey: keyof Filters, value: boolean) => void
+  filterOptions: Filters
 }
 
 interface Filters {
-  skipTraps: boolean;
-  avoidHype: boolean;
-  minMarketCap: boolean;
+  skipTraps: boolean
+  avoidHype: boolean
+  minMarketCap: boolean
 }
 
-export const MobileNavbar: React.FC<MobileNavbarProps> = ({ 
-  onViewChange, 
+interface Strategy {
+  id: string
+  name: string
+  type: "short" | "long" | "rsi"
+}
+
+interface TokenItem {
+  id: string
+  name: string
+  type: "binance" | "BTCC" | "ai"
+}
+
+export const MobileNavbar: React.FC<MobileNavbarProps> = ({
+  onViewChange,
   currentView,
   selectedRange,
   onRangeChange,
@@ -37,88 +51,100 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   activeFilterStrategyId,
   handleFilterClick,
   handleFilterOptionClick,
-  filterOptions
+  filterOptions,
 }) => {
-  const { isFavorite, addFavorite, removeFavorite, showOnlyFavorites, setShowOnlyFavorites } = useFavorites();
-  const { isConnected } = useAccount();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showRangeDropdown, setShowRangeDropdown] = useState(false);
-  const [showDEX, setShowDEX] = useState(false);
-  const [localShowFilters, setLocalShowFilters] = useState(showFilters);
-  const [localActiveFilterStrategyId, setLocalActiveFilterStrategyId] = useState<string | null>(activeFilterStrategyId);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { isFavorite, addFavorite, removeFavorite, showOnlyFavorites, setShowOnlyFavorites } = useFavorites()
+  const { isConnected } = useAccount()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showRangeDropdown, setShowRangeDropdown] = useState(false)
+  const [showDEX, setShowDEX] = useState(false)
+  const [localShowFilters, setLocalShowFilters] = useState(showFilters)
+  const [localActiveFilterStrategyId, setLocalActiveFilterStrategyId] = useState<string | null>(activeFilterStrategyId)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const [selectedStrategies, setSelectedStrategies] = useState<Strategy[]>([
+    { id: "1", name: "Short-Term", type: "short" },
+    { id: "2", name: "Long-Term", type: "long" },
+    { id: "3", name: "RSI", type: "rsi" },
+  ])
+
+  const allTokens: TokenItem[] = [
+    { id: "1", name: "Binance", type: "binance" },
+    { id: "2", name: "BTCC", type: "BTCC" },
+    { id: "3", name: "AI Agents", type: "ai" },
+  ]
 
   // Available range options
-  const rangeOptions = [
-    "Top 100",
-    "101 - 200",
-    "201 - 300",
-    "301 - 400",
-  ];
+  const rangeOptions = ["Top 100", "101 - 200", "201 - 300", "301 - 400"]
 
   // Add reverseRange helper:
   const reverseRange = (range: string): string => {
-    switch(range) {
-      case "Top 100": return "301 - 400";
-      case "101 - 200": return "200 - 300";
-      case "200 - 300": return "100 - 200";
-      case "301 - 400": return "Top 100";
-      default: return range;
+    switch (range) {
+      case "Top 100":
+        return "301 - 400"
+      case "101 - 200":
+        return "200 - 300"
+      case "200 - 300":
+        return "100 - 200"
+      case "301 - 400":
+        return "Top 100"
+      default:
+        return range
     }
-  };
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowRangeDropdown(false);
+        setShowRangeDropdown(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const toggleRangeDropdown = () => {
-    setShowRangeDropdown(!showRangeDropdown);
-  };
+    setShowRangeDropdown(!showRangeDropdown)
+  }
 
   // Modify handleRangeSelect:
   const handleRangeSelect = (range: string) => {
-    onRangeChange(reverseRange(range));
-    setShowRangeDropdown(false);
-  };
+    onRangeChange(reverseRange(range))
+    setShowRangeDropdown(false)
+  }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    onSearchChange(e.target.value);
-  };
+    setSearchQuery(e.target.value)
+    onSearchChange(e.target.value)
+  }
 
   const handleLocalFilterClick = (strategyId: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
+    event.preventDefault()
+    event.stopPropagation()
     if (localActiveFilterStrategyId === strategyId) {
-      setLocalShowFilters(false);
-      setLocalActiveFilterStrategyId(null);
+      setLocalShowFilters(false)
+      setLocalActiveFilterStrategyId(null)
     } else {
-      setLocalShowFilters(true);
-      setLocalActiveFilterStrategyId(strategyId);
+      setLocalShowFilters(true)
+      setLocalActiveFilterStrategyId(strategyId)
     }
-  };
+  }
 
   const toggleFavorite = async (symbol: string) => {
-    if (!isConnected || !symbol) return;
-    
+    if (!isConnected || !symbol) return
+
     if (isFavorite(symbol)) {
-      await removeFavorite(symbol);
+      await removeFavorite(symbol)
     } else {
-      await addFavorite(symbol);
+      await addFavorite(symbol)
     }
-  };
+  }
 
   const toggleFavoritesFilter = () => {
-    setShowOnlyFavorites(!showOnlyFavorites);
-  };
+    setShowOnlyFavorites(!showOnlyFavorites)
+  }
 
   return (
     <>
@@ -140,21 +166,81 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
             />
           </div>
         </div>
-        {(currentView === 'chart' || currentView === 'settings') && (
-          <button 
+        {(currentView === "chart" || currentView === "settings") && (
+          <button
             onClick={toggleFavoritesFilter}
-            className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? 'text-yellow-400' : 'text-gray-400'}`}
+            className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? "text-yellow-400" : "text-gray-400"}`}
           >
             <Star />
           </button>
         )}
       </div>
 
+      {currentView === "settings" && (
+        <div className="fixed top-[8vh] left-0 right-0 bg-gray-900 z-40 px-4 py-2 border-b border-gray-700">
+          <div className="flex flex-wrap gap-2">
+            {selectedStrategies.map((strategy) => (
+              <div key={strategy.id} className="relative">
+                {strategy.type === "long" || strategy.type === "rsi" ? (
+                  <div className="absolute -top-2 left-0 right-0 flex justify-center">
+                    <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
+                      <span className="font-medium text-white">Soon</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                    </div>
+                  </div>
+                ) : null}
+                <button
+                  className={`px-4 py-1.5 rounded-full ${
+                    strategy.type === "short" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"
+                  }`}
+                >
+                  {strategy.name}
+                  {strategy.type === "short" && (
+                    <span
+                      className="filters-button ml-1 cursor-pointer inline-flex items-center"
+                      onClick={(e) => handleLocalFilterClick(strategy.id, e)}
+                    >
+                      <SlidersHorizontal size={18} className="ml-2" />
+                    </span>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {currentView === "chart" && (
+        <div className="fixed top-[8vh] left-0 right-0 bg-gray-900 z-40 px-4 py-2 border-b border-gray-700">
+          <div className="flex flex-wrap gap-2">
+            {allTokens.map((token) => (
+              <div key={token.id} className="relative">
+                {token.type === "ai" && (
+                  <div className="absolute -top-2 left-0 right-0 flex justify-center">
+                    <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
+                      <span className="font-medium text-white">Soon</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                    </div>
+                  </div>
+                )}
+                <button
+                  className={`px-4 py-1.5 rounded-full ${
+                    token.type === "binance" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"
+                  }`}
+                >
+                  {token.name}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
         <div className="relative" ref={dropdownRef}>
-          {(currentView === 'chart' || currentView === 'settings') && (
+          {(currentView === "chart" || currentView === "settings") && (
             <>
-              <button 
+              <button
                 onClick={toggleRangeDropdown}
                 className="flex border mb-4 border-gray-400 bg-[#68686833]/20 items-center gap-1 px-2 py-1 rounded bg-black text-white"
               >
@@ -164,7 +250,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
               {showRangeDropdown && (
                 <div className="absolute bottom-full left-0  w-32 bg-black border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
                   {rangeOptions.map((range, index) => (
-                    <div 
+                    <div
                       key={index}
                       className="px-3 py-2 hover:bg-gray-800 cursor-pointer text-white text-sm"
                       onClick={() => handleRangeSelect(range)}
@@ -178,7 +264,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           )}
         </div>
         <div>
-          {(currentView === 'chart' || currentView === 'settings') && (
+          {(currentView === "chart" || currentView === "settings") && (
             <button
               onClick={() => setShowDEX(true)}
               className="p-1 border border-white bg-[#68686833]/20  mb-4 h-[30px] rounded-full text-white rounded-lg "
@@ -189,21 +275,21 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         </div>
 
         <div className="flex border border-white rounded-lg mb-4 overflow-hidden">
-          <button 
-            onClick={() => onViewChange('chart')}
-            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'chart' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+          <button
+            onClick={() => onViewChange("chart")}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === "chart" ? "bg-blue-800" : "bg-gray-800"} text-white`}
           >
             <Bubbles />
           </button>
-          <button 
-            onClick={() => onViewChange('settings')}
-            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'settings' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+          <button
+            onClick={() => onViewChange("settings")}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === "settings" ? "bg-blue-800" : "bg-gray-800"} text-white`}
           >
             <Settings />
           </button>
-          <button 
-            onClick={() => onViewChange('menu')}
-            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === 'menu' ? 'bg-blue-800' : 'bg-gray-800'} text-white`}
+          <button
+            onClick={() => onViewChange("menu")}
+            className={`flex items-center justify-center w-[60px] h-[30px] ${currentView === "menu" ? "bg-blue-800" : "bg-gray-800"} text-white`}
           >
             <Menu />
           </button>
@@ -221,26 +307,53 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           <div className="p-3 space-y-3">
             <div className="flex justify-between items-center border-b border-gray-700 pb-2">
               <h3 className="text-white font-medium">Filter Options</h3>
-              <button onClick={() => { setLocalShowFilters(false); setLocalActiveFilterStrategyId(null); }} className="text-gray-400 hover:text-white">
+              <button
+                onClick={() => {
+                  setLocalShowFilters(false)
+                  setLocalActiveFilterStrategyId(null)
+                }}
+                className="text-gray-400 hover:text-white"
+              >
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                <input type="checkbox" checked={filterOptions.skipTraps} onChange={(e) => handleFilterOptionClick('skipTraps', e.target.checked)} className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
-                Skip Potential Traps
+                <input
+                  type="checkbox"
+                  checked={filterOptions.skipTraps}
+                  onChange={(e) => handleFilterOptionClick("skipTraps", e.target.checked)}
+                  className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                />
+                No Market Structure Breaks
               </label>
               <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                <input type="checkbox" checked={filterOptions.avoidHype} onChange={(e) => handleFilterOptionClick('avoidHype', e.target.checked)} className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
+                <input
+                  type="checkbox"
+                  checked={filterOptions.avoidHype}
+                  onChange={(e) => handleFilterOptionClick("avoidHype", e.target.checked)}
+                  className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                />
                 Avoid Overhyped Tokens
               </label>
               <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                <input type="checkbox" checked={filterOptions.minMarketCap} onChange={(e) => handleFilterOptionClick('minMarketCap', e.target.checked)} className="rounded border-gray-600 text-blue-500 focus:ring-blue-500" />
-                Min Market Cap Filter
+                <input
+                  type="checkbox"
+                  checked={filterOptions.minMarketCap}
+                  onChange={(e) => handleFilterOptionClick("minMarketCap", e.target.checked)}
+                  className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+                />
+                Skip Potential Traps
               </label>
             </div>
             <div className="pt-2 border-t border-gray-700 flex justify-end">
-              <button onClick={() => { setLocalShowFilters(false); setLocalActiveFilterStrategyId(null); }} className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded">
+              <button
+                onClick={() => {
+                  setLocalShowFilters(false)
+                  setLocalActiveFilterStrategyId(null)
+                }}
+                className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
                 Apply
               </button>
             </div>
@@ -248,5 +361,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         </div>
       )}
     </>
-  );
-};
+  )
+}
+
