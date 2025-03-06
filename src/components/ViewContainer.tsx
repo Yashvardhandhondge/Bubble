@@ -151,84 +151,32 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
         {selectedStrategies.map(strategy => (
           <div key={strategy.id} className="relative filter-container flex-shrink-0">
             <button
-              onClick={() => setActiveStrategy(strategy.id)}
-              className={`px-4 py-2 rounded-full flex items-center whitespace-nowrap ${
-                strategy.isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-300'
+              onClick={(e) => {
+                e.stopPropagation();
+                if (strategy.type === 'long' || strategy.type === 'rsi') {
+                  // Render tooltip "Coming Soon" above the clicked button
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setComingSoon({ x: rect.left + rect.width / 2, y: rect.top });
+                  setTimeout(() => setComingSoon(null), 2000);
+                } else {
+                  setActiveStrategy(strategy.id);
+                }
+              }}
+              className={`px-4 py-1.5 rounded-full flex items-center whitespace-nowrap ${
+                strategy.isActive ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-600'
               }`}
               style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
             >
               {strategy.name}
               {strategy.type === 'short' && (
-                <button
-                  className="filters-button ml-2"
+                <button 
+                  className="filters-button ml-2" 
                   onClick={(e) => handleFilterClick(strategy.id, e)}
                 >
                   <SlidersHorizontal size={18} />
                 </button>
               )}
             </button>
-            {showFilters && activeFilterStrategyId === strategy.id && strategy.type === 'short' && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center">
-                <div className="bg-gray-800 rounded-lg w-[90%] max-w-sm mx-auto z-50">
-                  <div className="p-4 space-y-3">
-                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
-                      <h3 className="text-white font-medium">Filter Options</h3>
-                      <button 
-                        onClick={() => {
-                          setShowFilters(false);
-                          setActiveFilterStrategyId(null);
-                        }}
-                        className="text-gray-400 hover:text-white"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                        <input
-                          type="checkbox"
-                          checked={filterOptions.skipTraps}
-                          onChange={(e) => handleFilterOptionClick('skipTraps', e.target.checked)}
-                          className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
-                        />
-                        Skip Potential Traps
-                      </label>
-                      <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                        <input
-                          type="checkbox"
-                          checked={filterOptions.avoidHype}
-                          onChange={(e) => handleFilterOptionClick('avoidHype', e.target.checked)}
-                          className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
-                        />
-                        Avoid Overhyped Tokens
-                      </label>
-                      <label className="flex items-center gap-2 text-gray-300 hover:text-white">
-                        <input
-                          type="checkbox"
-                          checked={filterOptions.minMarketCap}
-                          onChange={(e) => handleFilterOptionClick('minMarketCap', e.target.checked)}
-                          className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
-                        />
-                        Min Market Cap Filter
-                      </label>
-                    </div>
-                    <div className="pt-3 border-t border-gray-700 flex justify-end">
-                      <button
-                        onClick={() => {
-                          setShowFilters(false);
-                          setActiveFilterStrategyId(null);
-                        }}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         ))}
         {isConnected && (
@@ -286,6 +234,8 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     }
   };
 
+  const [comingSoon, setComingSoon] = useState<{ x: number; y: number } | null>(null);
+
   return (
     <div className="min-h-screen">
       <MobileNavbar
@@ -301,6 +251,24 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
         filterOptions={filterOptions}
       />
       {renderView()}
+      {comingSoon && (
+        <div
+          style={{
+            position: 'fixed',
+            top: comingSoon.y - 35,
+            left: comingSoon.x,
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.85)',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '0.8rem',
+            zIndex: 9999,
+          }}
+        >
+          Coming Soon
+        </div>
+      )}
     </div>
   );
 };

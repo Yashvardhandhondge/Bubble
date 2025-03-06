@@ -99,32 +99,34 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     const fetchAllData = async () => {
       try {
+        // Fetch the risks data
         const risksResponse = await fetchWithRetry(`https://api.coinchart.fun/risks/${currentToken}`);
-        const signalsResponse = await fetchWithRetry(getSignalsEndpoint());
-
+        const signalsResponsePromise = isPremium 
+          ? fetchWithRetry(getSignalsEndpoint()) 
+          : Promise.resolve(null); // Skip signals fetch if free
+        
         if (!isSubscribed) return;
-
         let risksText = await risksResponse.text();
         
         try {
-          // Sanitize JSON
-          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)NaN/g, '$1null');
-          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)Infinity/g, '$1null');
-          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)-Infinity/g, '$1null');
-          risksText = risksText.replace(/([{,]\s*"[^"]+"\s*:\s*)undefined/g, '$1null');
-          
-          // Parse the sanitized JSON
+          risksText = risksText
+            .replace(/([{,]\s*"[^"]+"\s*:\s*)NaN/g, '$1null')
+            .replace(/([{,]\s*"[^"]+"\s*:\s*)Infinity/g, '$1null')
+            .replace(/([{,]\s*"[^"]+"\s*:\s*)-Infinity/g, '$1null')
+            .replace(/([{,]\s*"[^"]+"\s*:\s*)undefined/g, '$1null');
           const risksResult = JSON.parse(risksText);
           
-          // Process signals data
+          // Only fetch signals if premium; otherwise, use empty array
           let signalsData = [];
-          try {
-            signalsData = await signalsResponse.json();
-          } catch (signalError) {
-            console.error("Error parsing signals:", signalError);
-            signalsData = []; // Fallback to empty array if signals parsing fails
+          if (isPremium) {
+            const signalsResponse = await signalsResponsePromise;
+            try {
+              signalsData = await signalsResponse!.json();
+            } catch (signalError) {
+              console.error("Error parsing signals:", signalError);
+              signalsData = [];
+            }
           }
-
           // Transform and set data with extra safety checks and preserve chainId and tokenAddress
           const transformedRisksData = Object.entries(risksResult)
             .map(([key, value]: [string, any]) => {
@@ -167,7 +169,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
           setData(transformedRisksData);
           setFilteredData(transformedRisksData);
-          setSignals(sortedSignals);
+          // Use signalsData from API when premium, or empty array
+          setSignals(isPremium ? sortedSignals : []);
           setError(null);
         } catch (parseError) {
           console.error('Error parsing JSON:', parseError);
@@ -234,17 +237,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       }
     };
 
-    // Always fetch data when currentToken changes
     fetchAllData();
     
-    // Cleanup function
     return () => {
       isSubscribed = false;
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
-  }, [currentToken]);
+  }, [currentToken, isPremium]);
 
   // Separate effect for filtering
   useEffect(() => {
