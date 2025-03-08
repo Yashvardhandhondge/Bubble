@@ -101,9 +101,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       try {
         // Fetch the risks data
         const risksResponse = await fetchWithRetry(`https://api.coinchart.fun/risks/${currentToken}`);
-        const signalsResponsePromise = isPremium 
-          ? fetchWithRetry(getSignalsEndpoint()) 
-          : Promise.resolve(null); // Skip signals fetch if free
         
         if (!isSubscribed) return;
         let risksText = await risksResponse.text();
@@ -117,15 +114,18 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           const risksResult = JSON.parse(risksText);
           
           // Only fetch signals if premium; otherwise, use empty array
-          let signalsData = [];
+          let signalsData: any[] = [];
           if (isPremium) {
-            const signalsResponse = await signalsResponsePromise;
+            const signalsResponse = await fetchWithRetry(getSignalsEndpoint());
             try {
-              signalsData = await signalsResponse!.json();
+              signalsData = await signalsResponse.json();
             } catch (signalError) {
               console.error("Error parsing signals:", signalError);
               signalsData = [];
             }
+            signalsData = (signalsData as any[]).sort(
+              (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+            );
           }
           // Transform and set data with extra safety checks and preserve chainId and tokenAddress
           const transformedRisksData = Object.entries(risksResult)
