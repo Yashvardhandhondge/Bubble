@@ -233,7 +233,7 @@ export const BuySignalsPanel: React.FC = () => {
         {signalsLoading || loading ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
         ) : displaySignals?.length > 0 ? (
-          <div className={`${isLandscape ? 'grid grid-cols-2 gap-4 p-3' : 'space-y-4 p-5 md:p-0'}`}>
+          <div className={`${isLandscape ? 'grid grid-cols-1 gap-4 p-3' : 'space-y-4 p-5 md:p-0'}`}>
             {displaySignals.map((signal, index) =>
               isPremiumActive ? (
                 <PremiumSignalCard key={index} signal={signal} />
