@@ -256,10 +256,10 @@ export const BuySignalsPanel: React.FC = () => {
             <Buttons />
           </button>
         ) : (
-          <div className={`${isLandscape ? 'p-1' : 'p-6 md:p-0'}`}>
+          <div className={`${isLandscape ? 'p-1' : 'p-0 md:p-0'}`}>
             <button
               onClick={handleTelegramSupport}
-              className="w-full bg-blue-600 px-0 md:px-3 text-white py-2 md:py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-700 transition-colors my-2"
+              className="w-full bg-blue-600 px-0 md:px-3 text-white  py-2 md:py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-700 transition-colors my-2"
             >
               <span>Premium Support</span>
               <FaTelegram className="w-4 h-4" />

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X, Star } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAccount } from 'wagmi';
+import TradingViewWidget from './TradingViewWidget'; // Import the TradingView component
 
 const TokenWidget = ({ tokenData, onClose }:any) => {
     const { isFavorite, addFavorite, removeFavorite } = useFavorites();
@@ -21,8 +22,11 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
     
     const isFav = tokenData?.symbol ? isFavorite(tokenData.symbol) : false;
     
+    // Determine if we should use Moralis or TradingView
+    const isManualToken = tokenData?.chainId === 'MANUAL' || tokenData?.tokenAddress === 'MANUAL';
+    
     useEffect(() => {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || isManualToken) return;
         
         const loadWidget = () => {
             if (!tokenData?.chainId || !tokenData?.tokenAddress) {
@@ -54,7 +58,7 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
         } else {
             loadWidget();
         }
-    }, [tokenData]);
+    }, [tokenData, isManualToken]);
     
     // Format percentages
     const formatPercentage = (value:any) => {
@@ -70,11 +74,7 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
         : 'N/A';
     
     // Price is taken from API directly
-    const displayPrice = tokenData?.price !== undefined 
-      ? (Number(tokenData.price) < 0.0001 
-          ? Number(tokenData.price).toExponential(6) 
-          : Number(tokenData.price).toFixed(6))
-      : 'N/A';
+    const displayPrice = tokenData?.price ?? 'N/A';
     
     return (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center" onClick={onClose}>
@@ -87,7 +87,7 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
                                 src={tokenData.icon} 
                                 alt={tokenData.symbol || "Token"} 
                                 className="w-8 h-8 rounded-full"
-                                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                onError={(e) => {
                                     const img = e.target as HTMLImageElement;
                                     img.onerror = null;
                                     img.src = '/default.png';
@@ -107,7 +107,11 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
                                 <span className="text-gray-300">
                                     Price: <span className="text-white">${displayPrice}</span>
                                 </span>
-                           
+                                {/* {tokenData?.["1mChange"] !== undefined && (
+                                    <span className={`${parseFloat(tokenData["1mChange"]) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        1M: {formatPercentage(parseFloat(tokenData["1mChange"]))}
+                                    </span>
+                                )} */}
                             </div>
                         </div>
                     </div>
@@ -134,11 +138,19 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
                     </div>
                 </div>
                 
-                {/* Token chart container */}
-                <div 
-                    id="token-chart-container" 
-                    className="w-full h-full pt-14" 
-                />
+                {/* Conditional rendering based on token type */}
+                {isManualToken ? (
+                    // For MANUAL tokens, render TradingView widget
+                    <div className="w-full h-full pt-14 mt-2">
+                        <TradingViewWidget symbol={tokenData?.symbol} />
+                    </div>
+                ) : (
+                    // For tokens with address, render Moralis widget
+                    <div 
+                        id="token-chart-container" 
+                        className="w-full h-full pt-14" 
+                    />
+                )}
             </div>
         </div>
     );

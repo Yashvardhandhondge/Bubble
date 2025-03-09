@@ -1,43 +1,33 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React from 'react';
 
-interface Props {
-  children: ReactNode;
-}
-
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  };
+export class ErrorBoundary extends React.Component<{}, ErrorBoundaryState> {
+  constructor(props: {}) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ErrorBoundary caught an error', error, errorInfo);
   }
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 bg-red-500/10 rounded-lg">
-          <h2 className="text-red-500 font-bold">Something went wrong</h2>
-          <p className="text-gray-400">{this.state.error?.message}</p>
-          <button
-            className="mt-2 px-4 py-2 bg-red-500 text-white rounded"
-            onClick={() => this.setState({ hasError: false })}
-          >
-            Try again
-          </button>
+        <div className="p-4 bg-red-600 text-white">
+          <h1>Something went wrong.</h1>
+          <p>{this.state.error?.message}</p>
         </div>
       );
     }
-
     return this.props.children;
   }
-} 
+}

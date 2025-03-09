@@ -20,7 +20,7 @@ interface CryptoData {
   symbol: string;
   risk: number;
   icon: string;
-  price: number;
+  price: string;
   volume: number;
   moralisLink: string;
   chainId: string;
@@ -174,7 +174,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 symbol: key,
                 risk: typeof value.risk === 'number' && !isNaN(value.risk) ? value.risk : 50,
                 icon: value.icon || `https://coinchart.fun/icons/${key}.png`,
-                price: typeof value.price === 'number' && !isNaN(value.price) ? value.price : 0,
+                price: value.price ? String(value.price) : "0",
                 volume: typeof value.volume === 'number' && !isNaN(value.volume) ? value.volume : 0,
                 moralisLink: value.moralisLink || "#",
                 // Preserve the chainId and tokenAddress from the API
@@ -223,7 +223,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                   symbol,
                   risk: 50, // Default risk
                   icon: `https://coinchart.fun/icons/${symbol}.png`,
-                  price: 0,
+                  price: "0",
                   volume: Math.random() * 5000000,
                   moralisLink: "#",
                   chainId: "0x1", // Default to Ethereum

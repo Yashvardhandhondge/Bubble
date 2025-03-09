@@ -16,7 +16,7 @@ interface DataItem extends d3.SimulationNodeDatum {
   x: number;
   y: number;
   radius: number;
-  price?: number;
+  price?: string; // changed from number to string
   moralisLink?: string;
   warnings?: string[];
   "1mChange"?: number;

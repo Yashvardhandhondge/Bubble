@@ -49,12 +49,12 @@ function YourAppContent() {
         <FavoritesProvider>
         <Router>
           <div className="h-screen bg-black md:bg-gray-900 relative">
-            <MobileNavbar 
+            {/* <MobileNavbar 
               onViewChange={setCurrentView} 
               currentView={currentView}
               selectedRange={selectedRange}
-              onRangeRange={setSelectedRange}
-            />
+              onRangeChange={(range:string) => {setSelectedRange(range)}}
+            /> */}
             <ViewContainer 
               currentView={currentView} 
               selectedRange={selectedRange}
