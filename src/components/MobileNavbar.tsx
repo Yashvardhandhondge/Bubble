@@ -21,6 +21,9 @@ interface MobileNavbarProps {
   handleFilterClick: (strategyId: string, event: React.MouseEvent) => void
   handleFilterOptionClick: (filterKey: keyof Filters, value: boolean) => void
   filterOptions: Filters
+  selectedToken?: 'binance' | 'btcc' | 'ai'
+  setSelectedToken?: (token: 'binance' | 'btcc' | 'ai') => void
+  setCurrentToken?: (token: string) => void
 }
 
 interface Filters {
@@ -38,7 +41,7 @@ interface Strategy {
 interface TokenItem {
   id: string
   name: string
-  type: "binance" | "BTCC" | "ai"
+  type: "binance" | "btcc" | "ai"
 }
 
 export const MobileNavbar: React.FC<MobileNavbarProps> = ({
@@ -52,6 +55,9 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   handleFilterClick,
   handleFilterOptionClick,
   filterOptions,
+  selectedToken = 'binance',
+  setSelectedToken,
+  setCurrentToken,
 }) => {
   const { isFavorite, addFavorite, removeFavorite, showOnlyFavorites, setShowOnlyFavorites } = useFavorites()
   const { isConnected } = useAccount()
@@ -68,7 +74,11 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     { id: "3", name: "RSI", type: "rsi" },
   ])
 
-
+  const allTokens: TokenItem[] = [
+    { id: "1", name: "Binance", type: "binance" },
+    { id: "2", name: "BTCC", type: "btcc" },
+    { id: "3", name: "AI Agents", type: "ai" }
+  ]
 
   // Available range options
   const rangeOptions = ["Top 100", "101 - 200", "201 - 300", "301 - 400"]
@@ -141,47 +151,94 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
   const toggleFavoritesFilter = () => {
     setShowOnlyFavorites(!showOnlyFavorites)
   }
+  
+  // Render token selector (Binance, BTCC, AI Agents)
+  const renderTokenSelector = () => (
+    <div className="flex flex-wrap gap-2">
+      {allTokens.map(token => (
+        <div key={token.id} className="relative">
+          {token.type === 'ai' && (
+            <div className="absolute -top-3 left-0 right-0 flex justify-center z-10">
+              <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
+                <span className="font-medium text-white">Soon</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (token.type !== 'ai' && setSelectedToken && setCurrentToken) {
+                setSelectedToken(token.type)
+                setCurrentToken(token.type.toLowerCase())
+              }
+            }}
+            className={`px-4 py-1.5 rounded-full ${
+              token.type === selectedToken ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+            } ${token.type === 'ai' ? 'opacity-75 cursor-default' : ''}`}
+            disabled={token.type === 'ai'}
+          >
+            {token.name}
+          </button>
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <>
-      {/* Render top header only if currentView is not "menu" */}
-      {currentView !== "menu" && (
-        <div className="fixed top-0 left-0 right-0 h-[8vh] bg-gray-900 z-50 px-4 flex items-center justify-between border-b border-gray-700">
-          <div className="flex items-center gap-2">
-            <img src="/fav.png" alt="Logo" className="w-8 h-8" />
-            <span className="text-white font-bold">Coinchart.fun</span>
-          </div>
-          <div className="flex-1 mx-2">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search Crypto Currencies"
-                className="w-full h-10 bg-gray-800 text-white pl-10 pr-4 rounded-lg focus:outline-none"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+      {/* Always render top header, but with different content for menu view */}
+      <div className="fixed top-0 left-0 right-0 h-[8vh] bg-gray-900 z-50 px-4 flex items-center justify-between border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          <img src="/fav.png" alt="Logo" className="w-8 h-8" />
+          <span className="text-white font-bold">Coinchart.fun</span>
+        </div>
+        
+        {/* Only show search bar and star in chart/settings views */}
+        {currentView !== "menu" ? (
+          <>
+            <div className="flex-1 mx-2">
+              <div className="relative w-full max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search Crypto Currencies"
+                  className="w-full h-10 bg-gray-800 text-white pl-10 pr-4 rounded-lg focus:outline-none"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
             </div>
+            {(currentView === "chart" || currentView === "settings") && (
+              <button
+                onClick={toggleFavoritesFilter}
+                className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? "text-yellow-400" : "text-gray-400"}`}
+              >
+                <Star />
+              </button>
+            )}
+          </>
+        ) : (
+          /* For menu view, show title centered */
+          <div className="flex-1 text-center">
           </div>
-          {(currentView === "chart" || currentView === "settings") && (
-            <button
-              onClick={toggleFavoritesFilter}
-              className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? "text-yellow-400" : "text-gray-400"}`}
-            >
-              <Star />
-            </button>
-          )}
+        )}
+      </div>
+
+      {/* Only render token selector if view is "chart" (not menu) */}
+      {currentView === "chart" && (
+        <div className="fixed top-[8vh] left-0 right-0 bg-gray-900 z-40 px-4 py-2 border-b border-gray-700">
+          {renderTokenSelector()}
         </div>
       )}
 
-      {/* Render settings section if view is "settings" */}
+      {/* Only render settings section if view is "settings" (not menu) */}
       {currentView === "settings" && (
         <div className="fixed top-[8vh] left-0 right-0 bg-gray-900 z-40 px-4 py-2 border-b border-gray-700">
           <div className="flex flex-wrap gap-2">
             {selectedStrategies.map((strategy) => (
               <div key={strategy.id} className="relative">
                 {strategy.type === "long" || strategy.type === "rsi" ? (
-                  <div className="absolute -top-2 left-0 right-0 flex justify-center">
+                  <div className="absolute -top-3 left-0 right-0 flex justify-center z-10">
                     <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
                       <span className="font-medium text-white">Soon</span>
                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
@@ -191,7 +248,8 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
                 <button
                   className={`px-4 py-1.5 rounded-full ${
                     strategy.type === "short" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"
-                  }`}
+                  } ${(strategy.type === "long" || strategy.type === "rsi") ? "opacity-75 cursor-default" : ""}`}
+                  disabled={strategy.type === "long" || strategy.type === "rsi"}
                 >
                   {strategy.name}
                   {strategy.type === "short" && (
@@ -208,10 +266,6 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
           </div>
         </div>
       )}
-
-      {/* Render token selector only in the "chart" view.
-          Removed any duplicate token rendering if present */}
-    {/* Token selector - only show in chart view */}
 
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
         <div className="relative" ref={dropdownRef}>
@@ -340,4 +394,3 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     </>
   )
 }
-
