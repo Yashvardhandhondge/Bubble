@@ -68,11 +68,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
     { id: "3", name: "RSI", type: "rsi" },
   ])
 
-  const allTokens: TokenItem[] = [
-    { id: "1", name: "Binance", type: "binance" },
-    { id: "2", name: "BTCC", type: "BTCC" },
-    { id: "3", name: "AI Agents", type: "ai" },
-  ]
+
 
   // Available range options
   const rangeOptions = ["Top 100", "101 - 200", "201 - 300", "301 - 400"]
@@ -148,34 +144,37 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
 
   return (
     <>
-      {/* Top fixed header remains unchanged */}
-      <div className="fixed top-0 left-0 right-0 h-[8vh] bg-gray-900 z-50 px-4 flex items-center justify-between border-b border-gray-700">
-        <div className="flex items-center gap-2">
-          <img src="/fav.png" alt="Logo" className="w-8 h-8" />
-          <span className="text-white font-bold">Coinchart.fun</span>
-        </div>
-        <div className="flex-1 mx-2">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search Crypto Currencies"
-              className="w-full h-10 bg-gray-800 text-white pl-10 pr-4 rounded-lg focus:outline-none"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
+      {/* Render top header only if currentView is not "menu" */}
+      {currentView !== "menu" && (
+        <div className="fixed top-0 left-0 right-0 h-[8vh] bg-gray-900 z-50 px-4 flex items-center justify-between border-b border-gray-700">
+          <div className="flex items-center gap-2">
+            <img src="/fav.png" alt="Logo" className="w-8 h-8" />
+            <span className="text-white font-bold">Coinchart.fun</span>
           </div>
+          <div className="flex-1 mx-2">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search Crypto Currencies"
+                className="w-full h-10 bg-gray-800 text-white pl-10 pr-4 rounded-lg focus:outline-none"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
+          </div>
+          {(currentView === "chart" || currentView === "settings") && (
+            <button
+              onClick={toggleFavoritesFilter}
+              className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? "text-yellow-400" : "text-gray-400"}`}
+            >
+              <Star />
+            </button>
+          )}
         </div>
-        {(currentView === "chart" || currentView === "settings") && (
-          <button
-            onClick={toggleFavoritesFilter}
-            className={`flex items-center justify-center w-[30px] h-[30px] ${showOnlyFavorites ? "text-yellow-400" : "text-gray-400"}`}
-          >
-            <Star />
-          </button>
-        )}
-      </div>
+      )}
 
+      {/* Render settings section if view is "settings" */}
       {currentView === "settings" && (
         <div className="fixed top-[8vh] left-0 right-0 bg-gray-900 z-40 px-4 py-2 border-b border-gray-700">
           <div className="flex flex-wrap gap-2">
@@ -210,31 +209,9 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({
         </div>
       )}
 
-      {currentView === "chart" && (
-        <div className="fixed top-[8vh] left-0 right-0 bg-gray-900 z-40 px-4 py-2 border-b border-gray-700">
-          <div className="flex flex-wrap gap-2">
-            {allTokens.map((token) => (
-              <div key={token.id} className="relative">
-                {token.type === "ai" && (
-                  <div className="absolute -top-2 left-0 right-0 flex justify-center">
-                    <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
-                      <span className="font-medium text-white">Soon</span>
-                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                    </div>
-                  </div>
-                )}
-                <button
-                  className={`px-4 py-1.5 rounded-full ${
-                    token.type === "binance" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"
-                  }`}
-                >
-                  {token.name}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Render token selector only in the "chart" view.
+          Removed any duplicate token rendering if present */}
+    {/* Token selector - only show in chart view */}
 
       <div className="fixed bottom-0 left-0 right-0 h-[5vh] z-50 px-4 flex items-center justify-between">
         <div className="relative" ref={dropdownRef}>
