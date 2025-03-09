@@ -53,7 +53,7 @@ function YourAppContent() {
               onViewChange={setCurrentView} 
               currentView={currentView}
               selectedRange={selectedRange}
-              onRangeChange={setSelectedRange}
+              onRangeRange={setSelectedRange}
             />
             <ViewContainer 
               currentView={currentView} 

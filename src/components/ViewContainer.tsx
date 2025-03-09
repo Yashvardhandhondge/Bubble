@@ -127,19 +127,38 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
     <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
       {allTokens.map(token => (
         <div key={token.id} className="relative flex-shrink-0">
-          <button 
-            onClick={() => {
-              setSelectedToken(token.type);
-              setCurrentToken(token.type === 'ai' ? "cookiefun" : token.type.toLowerCase());
-            }}
-            className={`px-4 py-2 rounded-full whitespace-nowrap ${
-              selectedToken === token.type 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-800 text-gray-300'
-            }`}
-          >
-            {token.name}
-          </button>
+          {/* Add "Soon" badge for AI Agents token */}
+          {token.type === 'ai' && (
+           <div className="absolute -top-2 left-0 right-0 flex justify-center">
+           <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
+             <span className="font-medium text-white">Soon</span>
+             <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+           </div>
+         </div>
+          )}
+          {token.type !== 'ai' ? (
+            // Regular clickable button for non-AI tokens
+            <button 
+              onClick={() => {
+                setSelectedToken(token.type);
+                setCurrentToken(token.type.toLowerCase());
+              }}
+              className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                selectedToken === token.type 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {token.name}
+            </button>
+          ) : (
+            // Non-clickable div for AI token
+            <div 
+              className="px-4 py-2 rounded-full whitespace-nowrap bg-gray-800 text-gray-300 opacity-75 cursor-default pointer-events-none"
+            >
+              {token.name}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -150,6 +169,14 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
       <div className="flex flex-nowrap gap-2 min-w-min">
         {selectedStrategies.map(strategy => (
           <div key={strategy.id} className="relative filter-container flex-shrink-0">
+            {(strategy.type === 'long' || strategy.type === 'rsi') && (
+              <div className="absolute -top-2 left-0 right-0 flex justify-center">
+                <div className="bg-black rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 text-xs">
+                  <span className="font-medium text-white">Soon</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                </div>
+              </div>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -164,7 +191,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({
               }}
               className={`px-4 py-1.5 rounded-full flex items-center whitespace-nowrap ${
                 strategy.isActive ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-600'
-              }`}
+              } ${(strategy.type === 'long' || strategy.type === 'rsi') ? 'opacity-75 cursor-default' : ''}`}
               style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
             >
               {strategy.name}

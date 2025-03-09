@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { Crown, User, Loader2, RefreshCw } from 'lucide-react';
+import { Crown, User, Loader2 } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa';
 import { FreeSignalCard } from './FreeSignalCard';
 import { PremiumSignalCard } from './PremiumSignalCard';
@@ -10,7 +10,7 @@ import { useAccount, useDisconnect } from 'wagmi';
 import type { SignalData } from '../types';
 
 export const BuySignalsPanel: React.FC = () => {
-  const { signals, loading: signalsLoading, currentToken, isPremium: contextIsPremium, refreshSignals } = useData();
+  const { signals, loading: signalsLoading, currentToken } = useData();
   const { openConnectModal } = useConnectModal();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -20,7 +20,6 @@ export const BuySignalsPanel: React.FC = () => {
 
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
   interface UserData {
     subscription?: {
@@ -46,19 +45,6 @@ export const BuySignalsPanel: React.FC = () => {
       window.removeEventListener('resize', checkOrientation);
     };
   }, []);
-
-  // Handle manual refresh of signals
-  const handleRefreshSignals = () => {
-    if (!isPremiumActive) return;
-    
-    setRefreshing(true);
-    refreshSignals();
-    
-    // Show loading indicator for at least 1 second for UX
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -103,13 +89,6 @@ export const BuySignalsPanel: React.FC = () => {
         }
         
         setUserData(subscriptionData.user);
-        
-        // If subscription is active, update premium status in context
-        if (subscriptionData.user?.subscription && 
-            !subscriptionData.user.subscription.cancelAtPeriodEnd) {
-          localStorage.setItem('premium_status', 'active');
-          setIsPremium(true);
-        }
       } catch (err) {
         console.error('Error checking subscription:', err);
         setError(err instanceof Error ? err.message : 'Failed to check subscription status');
@@ -131,14 +110,6 @@ export const BuySignalsPanel: React.FC = () => {
     }
   }, []);
 
-  // Update contextIsPremium based on user subscription status
-  useEffect(() => {
-    if (isPremium !== contextIsPremium) {
-      // This will trigger a signals fetch in the DataContext
-      localStorage.setItem('premium_status', isPremium ? 'active' : 'inactive');
-    }
-  }, [isPremium, contextIsPremium]);
-
   const isPremiumActive = userData && !!!userData?.subscription?.cancelAtPeriodEnd;
   
   const mockSignals: SignalData[] = [
@@ -150,10 +121,7 @@ export const BuySignalsPanel: React.FC = () => {
     { symbol: "MOCK6", description: "Mock signal data 6", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
     { symbol: "MOCK7", description: "Mock signal data 7", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 }
   ];
-  
-  // Use real signals only when user is premium active
   const displaySignals = isPremiumActive ? signals : mockSignals;
-  console.log("Premium status:", isPremiumActive, "Signal count:", signals?.length);
 
   const handleUpgradeToPremium = () => {
     window.open('https://pay.boomfi.xyz/2rwqC9PH4zXMNqTupAXjsNyNJ3v', '_blank');
@@ -246,19 +214,9 @@ export const BuySignalsPanel: React.FC = () => {
 
       {/* Title Section - Reduced padding in landscape */}
       <div className={`px-0 sm:px-4 py-0 ${isLandscape ? 'py-0' : 'sm:py-2'}`}>
-        <div className={`flex items-center justify-center ${isLandscape ? 'p-1' : 'p-0 sm:p-7'} w-full`}>
-          <h1 className="text-2xl text-white font-semibold">Latest Buy Signals</h1>
-          {isPremiumActive && (
-            <button 
-              onClick={handleRefreshSignals}
-              disabled={refreshing}
-              className="ml-2 text-white p-1 rounded-full hover:bg-gray-700/50 transition-colors"
-              title="Refresh signals"
-            >
-              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
-            </button>
-          )}
-        </div>
+        <h1 className={`flex items-center justify-center text-2xl ${isLandscape ? 'p-1' : 'p-0 sm:p-7'} text-white font-semibold w-full`}>
+          Latest Buy Signals
+        </h1>
       </div>
 
       {/* Error Message */}
@@ -271,17 +229,19 @@ export const BuySignalsPanel: React.FC = () => {
       )}
 
       {/* Signal Cards Section - Adjusted for landscape */}
-      <div className={`flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar ${isLandscape ? 'grid grid-cols-1 gap-4 p-3' : 'flex flex-col gap-4 p-5'}`}>
-        {signalsLoading || loading || refreshing ? (
+      <div className={`flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar ${isLandscape ? 'landscape-signals' : ''}`}>
+        {signalsLoading || loading ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
         ) : displaySignals?.length > 0 ? (
-          displaySignals.map((signal, index) =>
-            isPremiumActive ? (
-              <PremiumSignalCard key={index} signal={signal} />
-            ) : (
-              <FreeSignalCard key={index} signal={signal} />
-            )
-          )
+          <div className={`${isLandscape ? 'grid grid-cols-2 gap-4 p-3' : 'space-y-4 p-5 md:p-0'}`}>
+            {displaySignals.map((signal, index) =>
+              isPremiumActive ? (
+                <PremiumSignalCard key={index} signal={signal} />
+              ) : (
+                <FreeSignalCard key={index} signal={signal} />
+              )
+            )}
+          </div>
         ) : (
           <div className="text-white text-center mt-8">
             No signals available for {getTokenTypeLabel()}
