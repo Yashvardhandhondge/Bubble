@@ -26,7 +26,7 @@ interface DataItem extends d3.SimulationNodeDatum {
 
 interface MobileBubbleChartProps {
   selectedRange: string;
-  searchQuery: string; // Add this prop
+  searchQuery: string;
 }
 
 // Constants for risk band positioning
@@ -39,16 +39,43 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
   const containerRef = useRef<HTMLDivElement | null>(null);
   const simulationRef = useRef<d3.Simulation<DataItem, undefined> | null>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [isLandscape, setIsLandscape] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedToken, setSelectedToken] = useState<DataItem | null>(null);
   const [selectedBubble, setSelectedBubble] = useState<DataItem | null>(null);
+  
+  // Fixed bubble sizes based on orientation
+  const [bubbleSizes, setBubbleSizes] = useState({
+    min: 10,
+    max: 20,
+    scale: 1
+  });
 
-  // Calculate container dimensions
+  // Calculate container dimensions and detect orientation
   useEffect(() => {
     const updateDimensions = () => {
       const vh = window.innerHeight;
       const vw = window.innerWidth;
       const availableHeight = vh * 0.85;
+      const landscape = vw > vh;
+      
+      setIsLandscape(landscape);
+      
+      // Set fixed bubble sizes based on orientation
+      if (landscape) {
+        setBubbleSizes({
+          min: 14,  // Larger minimum size in landscape to ensure content visibility
+          max: 22, // Larger maximum size in landscape
+          scale: 0.65 // Increased scaling factor
+        });
+      } else {
+        setBubbleSizes({
+          min: Math.max(vw * 0.05, 10),
+          max: Math.max(vw * 0.08, 20),
+          scale: window.innerWidth < 768 ? 0.7 : 1
+        });
+      }
+      
       setContainerDimensions({
         width: vw,
         height: availableHeight
@@ -56,13 +83,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
     };
 
     updateDimensions();
-    if (window.innerWidth >= 768) {
-      window.addEventListener('resize', updateDimensions);
-      return () => window.removeEventListener('resize', updateDimensions);
-    }
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Function to determine risk band position
+  // Function to determine risk band position for portrait mode
   const getRiskBand = (risk: number, height: number) => {
     const EFFECTIVE_HEIGHT = height - PADDING_TOP - PADDING_BOTTOM;
     const clampedRisk = Math.max(10, Math.min(100, risk));
@@ -163,16 +188,26 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
   const createBubbleHTML = (d: DataItem) => {
     const isFavorite = d.symbol && favorites.includes(d.symbol);
     const colors = calculateBubbleColor(d.risk || 50, isFavorite || false);
-    const iconSize = Math.max(d.radius * 0.6, 12);
-    const symbolFontSize = Math.max(d.radius * 0.35, 10);
-    const riskFontSize = Math.max(d.radius * 0.3, 8);
+    
+    // Adjust sizes for landscape mode
+    const iconSize = isLandscape 
+      ? Math.max(d.radius * 0.65, 14) 
+      : Math.max(d.radius * 0.6, 12);
+      
+    const symbolFontSize = isLandscape 
+      ? Math.max(d.radius * 0.4, 11) 
+      : Math.max(d.radius * 0.35, 10);
+      
+    const riskFontSize = isLandscape 
+      ? Math.max(d.radius * 0.35, 9) 
+      : Math.max(d.radius * 0.3, 8);
     
     return `
       <div class="bubble">
         <div class="relative rounded-full transition-transform hover:scale-105"
              style="width: ${d.radius * 2}px; height: ${d.radius * 2}px;">
           <div class="absolute inset-0 rounded-full"
-               style="border: 3px solid ${colors.border}; background: ${colors.background};">
+               style="border: ${isLandscape ? '2px' : '3px'} solid ${colors.border}; background: ${colors.background};">
             <div class="absolute inset-0 rounded-full"
                  style="background: radial-gradient(circle at center, ${colors.gradient}, transparent);">
             </div>
@@ -180,10 +215,10 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
           <div class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
             ${d.icon 
               ? `<img src="${d.icon}" alt="${d.symbol}" 
-                     style="width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; margin-bottom: 2px;" 
+                     style="width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; margin-bottom: ${isLandscape ? '0' : '2px'};" 
                      loading="lazy" onerror="this.onerror=null;this.src='/default.png';" />`
               : `<div style="width: ${iconSize}px; height: ${iconSize}px; 
-                           background: rgba(255,255,255,0.2); border-radius: 50%; margin-bottom: 2px;"></div>`
+                           background: rgba(255,255,255,0.2); border-radius: 50%; margin-bottom: ${isLandscape ? '0' : '2px'};"></div>`
             }
             <span style="font-size: ${symbolFontSize}px; color: white; font-weight: 700; 
                           text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1);
@@ -215,39 +250,101 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
       .append("div")
       .attr("class", "relative w-full h-full");
 
-    const minBubbleSize = Math.max(width * 0.05, 10);
-    const maxBubbleSize = Math.max(width * 0.08, 20);
-    const scaleFactor = window.innerWidth < 768 ? 0.7 : 1;
-
-    const initializedData = rangeFilteredData.map((d) => {
-      const bubbleRadius = Math.max(
-        minBubbleSize,
-        Math.min(maxBubbleSize, (d.bubbleSize || 0.5) * 20 * scaleFactor)
-      );
+    let initializedData;
+    
+    if (isLandscape) {
+      // In landscape mode, distribute bubbles freely across the entire area
+      // Sort data by risk to help with initial placement
+      const sortedData = [...rangeFilteredData].sort((a, b) => (b.risk || 0) - (a.risk || 0));
       
-      return {
-        ...d,
-        x: width / 2,
-        y: getRiskBand(d.risk || 50, height) + (Math.random() - 0.5) * 10,
-        radius: bubbleRadius
-      };
-    });
+      initializedData = sortedData.map((d, i) => {
+        // Calculate bubble size - smaller in landscape
+        const bubbleRadius = Math.max(
+          bubbleSizes.min,
+          Math.min(bubbleSizes.max, (d.bubbleSize || 0.5) * 15 * bubbleSizes.scale)
+        );
+        
+        // Determine vertical position based on risk
+        // Higher risk (>90) at top (20% of height), lower risk (<50) at bottom (80% of height)
+        const risk = d.risk || 50;
+        const normalizedRisk = (risk - 10) / 90; // 0 to 1 scale
+        const invertedRisk = 1 - normalizedRisk; // Invert so higher risk is at top
+        
+        // Calculate y position with some randomness
+        // Use a nonlinear mapping to create more natural distribution
+        const yPct = Math.pow(invertedRisk, 0.8); // Power less than 1 spreads high-risk tokens more
+        const yPosition = PADDING_TOP + (height - PADDING_TOP - PADDING_BOTTOM) * yPct;
+        
+        // For x position, spread across width with controlled randomness
+        // Use golden ratio to prevent clumping
+        const PHI = 0.618033988749895;
+        let xNoise = (i * PHI) % 1.0; // Well-distributed noise between 0-1
+        
+        // Ensure we use at least 90% of the width
+        const xPadding = width * 0.05;
+        const xPosition = xPadding + (width - 2 * xPadding) * xNoise;
+        
+        return {
+          ...d,
+          x: xPosition,
+          y: yPosition,
+          radius: bubbleRadius
+        };
+      });
+    } else {
+      // Original vertical layout for portrait
+      initializedData = rangeFilteredData.map((d) => {
+        const bubbleRadius = Math.max(
+          bubbleSizes.min,
+          Math.min(bubbleSizes.max, (d.bubbleSize || 0.5) * 20 * bubbleSizes.scale)
+        );
+        
+        return {
+          ...d,
+          x: width / 2,
+          y: getRiskBand(d.risk || 50, height) + (Math.random() - 0.5) * 10,
+          radius: bubbleRadius
+        };
+      });
+    }
 
-    const simulation = d3.forceSimulation<DataItem>(initializedData)
-      .force("x", d3.forceX<DataItem>(width / 2).strength(0.3))
-      .force("y", d3.forceY<DataItem>(d => getRiskBand(d.risk || 50, height)).strength(0.4))
-      .force("collide", d3.forceCollide<DataItem>()
-        .radius(d => d.radius + 2)
-        .strength(1))
-      .force("charge", d3.forceManyBody<DataItem>()
-        .strength(d => -Math.pow(d.radius, 2) * 0.3))
-      .alphaDecay(0.02)
-      .velocityDecay(0.3);
+    // Configure simulation based on orientation
+    const simulation = d3.forceSimulation<DataItem>(initializedData);
+    
+    if (isLandscape) {
+      // Landscape mode - gentle forces to maintain free-floating distribution 
+      simulation
+        // Apply weak forces to maintain approximate positions
+        .force("x", d3.forceX<DataItem>(d => d.x).strength(0.1))
+        .force("y", d3.forceY<DataItem>(d => d.y).strength(0.2)) // Stronger y-force to maintain risk stratification
+        // Collision detection to prevent overlap
+        .force("collide", d3.forceCollide<DataItem>().radius(d => d.radius + 1).strength(0.6))
+        // Slight mutual repulsion
+        .force("charge", d3.forceManyBody<DataItem>().strength(d => -Math.pow(d.radius, 1.5) * 0.2))
+        .alphaDecay(0.02) // Slower decay for more movement
+        .velocityDecay(0.4); // Higher friction
+    } else {
+      // Original portrait simulation
+      simulation
+        .force("x", d3.forceX<DataItem>(width / 2).strength(0.3))
+        .force("y", d3.forceY<DataItem>(d => getRiskBand(d.risk || 50, height)).strength(0.4))
+        .force("collide", d3.forceCollide<DataItem>().radius(d => d.radius + 2).strength(1))
+        .force("charge", d3.forceManyBody<DataItem>().strength(d => -Math.pow(d.radius, 2) * 0.3))
+        .alphaDecay(0.02)
+        .velocityDecay(0.3);
+    }
 
     simulationRef.current = simulation;
 
+    // Let the simulation run longer in landscape mode to achieve nice distribution
     if (window.innerWidth < 768) {
+      setTimeout(() => simulation.stop(), 6000);
+    } else if (!isLandscape) {
+      // Normal stop time for desktop portrait
       setTimeout(() => simulation.stop(), 8000);
+    } else {
+      // Let it run longer in landscape for better distribution
+      setTimeout(() => simulation.stop(), 10000);
     }
 
     const bubbles = bubbleContainer
@@ -279,7 +376,7 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
     return () => {
       simulation.stop();
     };
-  }, [rangeFilteredData, containerDimensions, selectedRange, favorites]);
+  }, [rangeFilteredData, containerDimensions, selectedRange, favorites, bubbleSizes, isLandscape]);
 
   if (loading) {
     return (

@@ -111,23 +111,26 @@ const BubbleChart: React.FC<BitcoinRiskChartProps> = ({ onBubbleClick, selectedR
       );
     }
     
+    // Map each item, storing the original API risk as apiRisk.
     const slicedData = dataToProcess.map(item => {
-      // Use safeBubbleSize: if item.bubbleSize is invalid, assign random default.
-      const safeBubbleSize = (item.bubbleSize !== null && !isNaN(Number(item.bubbleSize)))
+      // Ensure API values (price, risk, bubbleSize, volume) are converted to numbers
+      const apiRisk = item.risk !== undefined ? Number(item.risk) : 50;
+      const parsedRisk = !isNaN(apiRisk) ? apiRisk : 50;
+      const safeBubbleSize = item.bubbleSize !== undefined && !isNaN(Number(item.bubbleSize))
         ? Number(item.bubbleSize)
         : Math.random() * 0.5 + 0.5;
+      
       return {
         ...item,
-        risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
-        // Calculate radius using safeBubbleSize (multiplier kept as 35)
+        apiRisk, // store original API risk
+        risk: parsedRisk,
+        bubbleSize: safeBubbleSize,
         radius: Math.max(
           BUBBLE_MIN_SIZE,
           Math.min(BUBBLE_MAX_SIZE, safeBubbleSize * 35)
         ),
         x: containerWidth / 2 + (Math.random() - 0.5) * 100,
-        y: getRiskBand((item.risk !== null && !isNaN(Number(item.risk)))
-              ? Number(item.risk)
-              : 50)
+        y: getRiskBand(parsedRisk)
       };
     });
       

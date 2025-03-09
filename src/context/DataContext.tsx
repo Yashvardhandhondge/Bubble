@@ -6,7 +6,14 @@ interface SignalData {
   description: string;
   timestamp?: number;
   risks: string[];
-  // ... other signal properties
+  warnings: string[];
+  warning_count: number;
+  positives: string[];
+  date: string;
+  price: number;
+  link: string;
+  risk: number;
+  risk_usdt: number;
 }
 
 interface CryptoData {
@@ -16,9 +23,9 @@ interface CryptoData {
   price: number;
   volume: number;
   moralisLink: string;
-  chainId: string;       // Added this field
-  tokenAddress: string;  // Added this field
-  name: string;          // Added this field
+  chainId: string;
+  tokenAddress: string;
+  name: string;
   warnings: string[];
   "1mChange": number;
   "2wChange": number;
@@ -46,6 +53,7 @@ interface DataContextType {
   setCurrentToken: (token: string) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  refreshSignals: () => void; // Added this function to manually refresh signals
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -72,6 +80,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     localStorage.getItem('premium_status') === 'active'
   );
   const [currentToken, setCurrentToken] = useState<string>("binance");
+  const signalsFetchedRef = useRef(false);
 
   const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     for (let i = 0; i < retries; i++) {
@@ -93,9 +102,53 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     return "https://api.coinchart.fun/signals/binance";
   };
 
+  // Function to fetch signals separately
+  const fetchSignals = async () => {
+    console.log("Fetching signals for:", currentToken, "Premium status:", isPremium);
+    if (!isPremium) {
+      console.log("Not premium, skipping signals fetch");
+      setSignals([]);
+      return;
+    }
+
+    try {
+      const endpoint = getSignalsEndpoint();
+      console.log("Signals endpoint:", endpoint);
+      
+      const signalsResponse = await fetchWithRetry(endpoint);
+      try {
+        const signalsData = await signalsResponse.json();
+        console.log("Signals data fetched:", signalsData.length, "items");
+        
+        // Sort signals by timestamp if available
+        const sortedSignals = Array.isArray(signalsData) 
+          ? signalsData.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+          : [];
+          
+        setSignals(sortedSignals);
+        signalsFetchedRef.current = true;
+      } catch (signalError) {
+        console.error("Error parsing signals:", signalError);
+        setSignals([]);
+      }
+    } catch (err) {
+      console.error("Error fetching signals:", err);
+      setSignals([]);
+    }
+  };
+
+  // Add a function to manually refresh signals
+  const refreshSignals = () => {
+    fetchSignals();
+  };
+
+  // Effect to handle signals fetching whenever premium status or token changes
+  useEffect(() => {
+    fetchSignals();
+  }, [isPremium, currentToken]);
+
   useEffect(() => {
     let isSubscribed = true;
-    let intervalId: NodeJS.Timeout | null = null;
 
     const fetchAllData = async () => {
       try {
@@ -113,20 +166,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             .replace(/([{,]\s*"[^"]+"\s*:\s*)undefined/g, '$1null');
           const risksResult = JSON.parse(risksText);
           
-          // Only fetch signals if premium; otherwise, use empty array
-          let signalsData: any[] = [];
-          if (isPremium) {
-            const signalsResponse = await fetchWithRetry(getSignalsEndpoint());
-            try {
-              signalsData = await signalsResponse.json();
-            } catch (signalError) {
-              console.error("Error parsing signals:", signalError);
-              signalsData = [];
-            }
-            signalsData = (signalsData as any[]).sort(
-              (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
-            );
-          }
           // Transform and set data with extra safety checks and preserve chainId and tokenAddress
           const transformedRisksData = Object.entries(risksResult)
             .map(([key, value]: [string, any]) => {
@@ -153,24 +192,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             })
             .sort((a, b) => (b.volume || 0) - (a.volume || 0));
 
-          // Debug: Log the first item to verify chainId and tokenAddress are preserved
-          if (transformedRisksData.length > 0) {
-            console.log("Sample token data:", {
-              symbol: transformedRisksData[0].symbol,
-              chainId: transformedRisksData[0].chainId,
-              tokenAddress: transformedRisksData[0].tokenAddress
-            });
-          }
-
-          // Sort signals if any
-          const sortedSignals = (signalsData as any[]).sort(
-            (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
-          );
-
           setData(transformedRisksData);
           setFilteredData(transformedRisksData);
-          // Use signalsData from API when premium, or empty array
-          setSignals(isPremium ? sortedSignals : []);
           setError(null);
         } catch (parseError) {
           console.error('Error parsing JSON:', parseError);
@@ -241,11 +264,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     
     return () => {
       isSubscribed = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
     };
-  }, [currentToken, isPremium]);
+  }, [currentToken]);
 
   // Separate effect for filtering
   useEffect(() => {
@@ -310,7 +330,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       currentToken,
       setCurrentToken,
       searchTerm,
-      setSearchTerm
+      setSearchTerm,
+      refreshSignals
     }}>
       {children}
     </DataContext.Provider>

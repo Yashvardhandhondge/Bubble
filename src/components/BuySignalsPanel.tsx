@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { Crown, User, Loader2 } from 'lucide-react';
+import { Crown, User, Loader2, RefreshCw } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa';
 import { FreeSignalCard } from './FreeSignalCard';
 import { PremiumSignalCard } from './PremiumSignalCard';
@@ -10,7 +10,7 @@ import { useAccount, useDisconnect } from 'wagmi';
 import type { SignalData } from '../types';
 
 export const BuySignalsPanel: React.FC = () => {
-  const { signals, loading: signalsLoading, currentToken } = useData();
+  const { signals, loading: signalsLoading, currentToken, isPremium: contextIsPremium, refreshSignals } = useData();
   const { openConnectModal } = useConnectModal();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -19,6 +19,8 @@ export const BuySignalsPanel: React.FC = () => {
   );
 
   const [showDisconnect, setShowDisconnect] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   interface UserData {
     subscription?: {
@@ -30,6 +32,33 @@ export const BuySignalsPanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [error, setError] = useState('');
+
+  // Check for landscape orientation
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+    };
+  }, []);
+
+  // Handle manual refresh of signals
+  const handleRefreshSignals = () => {
+    if (!isPremiumActive) return;
+    
+    setRefreshing(true);
+    refreshSignals();
+    
+    // Show loading indicator for at least 1 second for UX
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -74,6 +103,13 @@ export const BuySignalsPanel: React.FC = () => {
         }
         
         setUserData(subscriptionData.user);
+        
+        // If subscription is active, update premium status in context
+        if (subscriptionData.user?.subscription && 
+            !subscriptionData.user.subscription.cancelAtPeriodEnd) {
+          localStorage.setItem('premium_status', 'active');
+          setIsPremium(true);
+        }
       } catch (err) {
         console.error('Error checking subscription:', err);
         setError(err instanceof Error ? err.message : 'Failed to check subscription status');
@@ -95,6 +131,14 @@ export const BuySignalsPanel: React.FC = () => {
     }
   }, []);
 
+  // Update contextIsPremium based on user subscription status
+  useEffect(() => {
+    if (isPremium !== contextIsPremium) {
+      // This will trigger a signals fetch in the DataContext
+      localStorage.setItem('premium_status', isPremium ? 'active' : 'inactive');
+    }
+  }, [isPremium, contextIsPremium]);
+
   const isPremiumActive = userData && !!!userData?.subscription?.cancelAtPeriodEnd;
   
   const mockSignals: SignalData[] = [
@@ -106,7 +150,10 @@ export const BuySignalsPanel: React.FC = () => {
     { symbol: "MOCK6", description: "Mock signal data 6", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
     { symbol: "MOCK7", description: "Mock signal data 7", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 }
   ];
+  
+  // Use real signals only when user is premium active
   const displaySignals = isPremiumActive ? signals : mockSignals;
+  console.log("Premium status:", isPremiumActive, "Signal count:", signals?.length);
 
   const handleUpgradeToPremium = () => {
     window.open('https://pay.boomfi.xyz/2rwqC9PH4zXMNqTupAXjsNyNJ3v', '_blank');
@@ -146,10 +193,10 @@ export const BuySignalsPanel: React.FC = () => {
     };
   }, [showDisconnect]);
   
-
   return (
-    <div className="h-full bg-black flex flex-col border-l-3 border-gray-300">
-      <div className="flex flex-row items-center justify-between p-8 sm p-4   h-16">
+    <div className={`h-full bg-black flex flex-col border-l-3 border-gray-300 ${isLandscape ? 'landscape-panel' : ''}`}>
+      {/* Header Section */}
+      <div className={`flex flex-row items-center justify-between ${isLandscape ? 'p-2' : 'p-8 sm:p-4'} h-16`}>
         <div className="flex items-center gap-2">
           {loading ? (
             <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -196,12 +243,25 @@ export const BuySignalsPanel: React.FC = () => {
           </button>
         )}
       </div>
-      <div className=" px-0 sm:px-4 py-0 sm:py-2 ">
-        <h1 className=" flex  items-center  justify-center text-2xl p-0 sm:p-7 text-white font-semibold  w-full">
-          Latest Buy Signals
-        </h1>
+
+      {/* Title Section - Reduced padding in landscape */}
+      <div className={`px-0 sm:px-4 py-0 ${isLandscape ? 'py-0' : 'sm:py-2'}`}>
+        <div className={`flex items-center justify-center ${isLandscape ? 'p-1' : 'p-0 sm:p-7'} w-full`}>
+          <h1 className="text-2xl text-white font-semibold">Latest Buy Signals</h1>
+          {isPremiumActive && (
+            <button 
+              onClick={handleRefreshSignals}
+              disabled={refreshing}
+              className="ml-2 text-white p-1 rounded-full hover:bg-gray-700/50 transition-colors"
+              title="Refresh signals"
+            >
+              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Error Message */}
       {error && (
         <div className="px-4 py-2">
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
@@ -210,19 +270,18 @@ export const BuySignalsPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar">
-        {signalsLoading || loading ? (
+      {/* Signal Cards Section - Adjusted for landscape */}
+      <div className={`flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar ${isLandscape ? 'grid grid-cols-1 gap-4 p-3' : 'flex flex-col gap-4 p-5'}`}>
+        {signalsLoading || loading || refreshing ? (
           <div className="text-white text-center mt-8">Loading signals...</div>
         ) : displaySignals?.length > 0 ? (
-          <div className="space-y-4 p-5 md:p-0">
-            {displaySignals.map((signal, index) =>
-              isPremiumActive ? (
-                <PremiumSignalCard key={index} signal={signal} />
-              ) : (
-                <FreeSignalCard key={index} signal={signal} />
-              )
-            )}
-          </div>
+          displaySignals.map((signal, index) =>
+            isPremiumActive ? (
+              <PremiumSignalCard key={index} signal={signal} />
+            ) : (
+              <FreeSignalCard key={index} signal={signal} />
+            )
+          )
         ) : (
           <div className="text-white text-center mt-8">
             No signals available for {getTokenTypeLabel()}
@@ -230,21 +289,22 @@ export const BuySignalsPanel: React.FC = () => {
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-800/50 mb-4 ">
+      {/* Bottom Section - Adjusted padding for landscape */}
+      <div className={`${isLandscape ? 'p-2' : 'p-4'} border-t border-gray-800/50 ${isLandscape ? 'mb-2' : 'mb-4'}`}>
         {!isPremiumActive ? (
-          <button onClick={handleUpgradeToPremium} className="w-full h-full flex items-center justify-center ">
+          <button onClick={handleUpgradeToPremium} className="w-full h-full flex items-center justify-center">
             <Buttons />
           </button>
         ) : (
-          <div className='p-6 md:p-0'>
+          <div className={`${isLandscape ? 'p-1' : 'p-6 md:p-0'}`}>
             <button
               onClick={handleTelegramSupport}
-              className="w-full bg-blue-600 px-0 md:px-3 text-white py-2 md:py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-700 transition-colors  my-2"
+              className="w-full bg-blue-600 px-0 md:px-3 text-white py-2 md:py-2 rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-700 transition-colors my-2"
             >
               <span>Premium Support</span>
               <FaTelegram className="w-4 h-4" />
             </button>
-            <div className='flex block md:hidden space-x-5 mt-7 ml-3 text-white justify-end '>
+            <div className={`flex block md:hidden space-x-5 ${isLandscape ? 'mt-2' : 'mt-7'} ml-3 text-white justify-end`}>
               Api Access ? <span className='text-blue-400 ml-5 mt-1'><FaTelegram /></span>
             </div>
           </div>

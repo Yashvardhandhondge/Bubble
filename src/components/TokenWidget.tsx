@@ -61,6 +61,20 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
         if (value === undefined || value === null) return 'N/A';
         return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
     };
+
+    // Use apiRisk if available for display
+    const displayRisk = tokenData?.apiRisk !== undefined 
+      ? Number(tokenData.apiRisk).toFixed(1) 
+      : tokenData?.risk !== undefined 
+        ? Number(tokenData.risk).toFixed(1)
+        : 'N/A';
+    
+    // Price is taken from API directly
+    const displayPrice = tokenData?.price !== undefined 
+      ? (Number(tokenData.price) < 0.0001 
+          ? Number(tokenData.price).toExponential(6) 
+          : Number(tokenData.price).toFixed(6))
+      : 'N/A';
     
     return (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center" onClick={onClose}>
@@ -82,22 +96,18 @@ const TokenWidget = ({ tokenData, onClose }:any) => {
                         )}
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-bold text-white">{tokenData?.symbol}</h3>
-                                <span className={`text-base ${tokenData.risk > 70 ? 'text-red-500' : 'text-green-500'}`}>
-                                    Risk: {tokenData?.risk?.toFixed(1)}%
+                                <h3 className="text-xl font-bold text-white">
+                                    {tokenData?.symbol}
+                                </h3>
+                                <span className={`text-base ${Number(tokenData?.apiRisk || tokenData?.risk) > 70 ? 'text-red-500' : 'text-green-500'}`}>
+                                    Risk: {displayRisk}%
                                 </span>
                             </div>
                             <div className="flex gap-4 text-sm">
                                 <span className="text-gray-300">
-                                    Price: <span className="text-white">
-                                        ${tokenData?.price < 0.0001 ? tokenData.price.toExponential(6) : tokenData.price.toFixed(6)}
-                                    </span>
+                                    Price: <span className="text-white">${displayPrice}</span>
                                 </span>
-                                <span className="text-gray-300">
-                                    1M: <span className={tokenData?.["1mChange"] >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                        {formatPercentage(tokenData?.["1mChange"])}
-                                    </span>
-                                </span>
+                           
                             </div>
                         </div>
                     </div>
