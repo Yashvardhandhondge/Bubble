@@ -20,7 +20,7 @@ interface CryptoData {
   symbol: string;
   risk: number;
   icon: string;
-  price: string;
+  price: number;
   volume: number;
   moralisLink: string;
   chainId: string;
@@ -105,11 +105,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Function to fetch signals separately
   const fetchSignals = async () => {
     console.log("Fetching signals for:", currentToken, "Premium status:", isPremium);
-    if (!isPremium) {
-      console.log("Not premium, skipping signals fetch");
-      setSignals([]);
-      return;
-    }
+    // Removed the early exit so that signals request always goes:
+    // if (!isPremium) {
+    //   console.log("Not premium, skipping signals fetch");
+    //   setSignals([]);
+    //   return;
+    // }
 
     try {
       const endpoint = getSignalsEndpoint();
@@ -174,7 +175,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 symbol: key,
                 risk: typeof value.risk === 'number' && !isNaN(value.risk) ? value.risk : 50,
                 icon: value.icon || `https://coinchart.fun/icons/${key}.png`,
-                price: value.price ? String(value.price) : "0",
+                price: typeof value.price === 'number' && !isNaN(value.price) ? value.price : 0,
                 volume: typeof value.volume === 'number' && !isNaN(value.volume) ? value.volume : 0,
                 moralisLink: value.moralisLink || "#",
                 // Preserve the chainId and tokenAddress from the API
@@ -223,7 +224,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                   symbol,
                   risk: 50, // Default risk
                   icon: `https://coinchart.fun/icons/${symbol}.png`,
-                  price: "0",
+                  price: 0,
                   volume: Math.random() * 5000000,
                   moralisLink: "#",
                   chainId: "0x1", // Default to Ethereum
@@ -269,48 +270,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   // Separate effect for filtering
   useEffect(() => {
-    if (!data.length) return;
-
-    const areFiltersActive = Object.values(filters).some(value => value === true);
+    // Option 1: if you want no extra filtering:
+    setFilteredData(data);
     
-    let filtered = data;
-
-    if (areFiltersActive) {
-      filtered = data.filter(item => {
-        if (!item.warnings || item.warnings.length === 0) return true;
-
-        let shouldInclude = true;
-
-        if (filters.skipPotentialTraps) {
-          shouldInclude = shouldInclude && !item.warnings.some(w => 
-            w.toLowerCase().includes("cycle is falling")
-          );
-        }
-
-        if (filters.avoidOverhypedTokens) {
-          shouldInclude = shouldInclude && !item.warnings.some(w => 
-            w.toLowerCase().includes("cycle spent") && w.toLowerCase().includes("above 80")
-          );
-        }
-
-        if (filters.marketCapFilter) {
-          shouldInclude = shouldInclude && !item.warnings.some(w => 
-            w.toLowerCase().includes("cycle has previously failed")
-          );
-        }
-
-        return shouldInclude;
-      });
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(item => 
-        item.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredData(filtered);
-  }, [data, filters, searchTerm]);
+    // Option 2: if you want to apply searchTerm filtering only, use:
+    // setFilteredData(searchTerm ? data.filter(item => item.symbol.toLowerCase().includes(searchTerm.toLowerCase())) : data);
+  }, [data]);
 
   const updateFilters = (newFilters: Partial<FilterSettings>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));

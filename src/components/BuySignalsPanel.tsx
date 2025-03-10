@@ -83,12 +83,16 @@ export const BuySignalsPanel: React.FC = () => {
         });
         
         const subscriptionData = await subscriptionResponse.json();
+        console.log("Subscription data received:", subscriptionData); // NEW
+        
         
         if (!subscriptionData.success) {
           throw new Error(subscriptionData.message);
         }
         
         setUserData(subscriptionData.user);
+        console.log("Subscription data received:", subscriptionData.user); // NEW
+        
       } catch (err) {
         console.error('Error checking subscription:', err);
         setError(err instanceof Error ? err.message : 'Failed to check subscription status');
@@ -98,7 +102,7 @@ export const BuySignalsPanel: React.FC = () => {
     };
     
     checkUserStatus();
-  }, [address]);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -111,6 +115,9 @@ export const BuySignalsPanel: React.FC = () => {
   }, []);
 
   const isPremiumActive = userData && !!!userData?.subscription?.cancelAtPeriodEnd;
+  console.log('====================================');
+  console.log('isPremiumActive:', isPremiumActive);
+  console.log('====================================');
   
   const mockSignals: SignalData[] = [
     { symbol: "MOCK1", description: "Mock signal data 1", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 },
@@ -122,6 +129,7 @@ export const BuySignalsPanel: React.FC = () => {
     { symbol: "MOCK7", description: "Mock signal data 7", risks: [], warnings: [], warning_count: 0, positives: [], date: new Date().toISOString(), price: 0, link: "", risk: 0, risk_usdt: 0 }
   ];
   const displaySignals = isPremiumActive ? signals : mockSignals;
+  
 
   const handleUpgradeToPremium = () => {
     window.open('https://pay.boomfi.xyz/2rwqC9PH4zXMNqTupAXjsNyNJ3v', '_blank');

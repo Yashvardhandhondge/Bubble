@@ -23,7 +23,7 @@ interface TokenData {
   volume?: number;
   symbol?: string;
   icon?: string;
-  price?: string; // changed from number to string
+  price?: number;
   chainId?: string;
   tokenAddress?: string;
   moralisLink?: string;

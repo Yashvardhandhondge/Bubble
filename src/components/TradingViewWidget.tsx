@@ -36,7 +36,7 @@ function TradingViewWidget({ symbol = 'BTCUSDT' }: { symbol?: string }) {
         "hide_volume": false,
         "support_host": "https://www.tradingview.com"
       }`;
-    container.current.appendChild(script);
+    container.current?.appendChild(script);
 
     // Cleanup function
     return () => {

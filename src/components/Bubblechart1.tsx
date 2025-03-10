@@ -140,10 +140,11 @@ const MobileBubbleChart: React.FC<MobileBubbleChartProps> = ({ selectedRange, se
         ...item,
         risk: (item.risk !== null && !isNaN(Number(item.risk))) ? Number(item.risk) : 50,
         bubbleSize: safeBubbleSize,
+        price: item.price?.toString() || '0',
         x: 0,
         y: 0,
         radius: 0
-      } as DataItem;
+      };
     });
   }, [filteredData, selectedRange, showOnlyFavorites, favorites, searchQuery]);
 
